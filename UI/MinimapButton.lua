@@ -37,7 +37,7 @@ MM.UpdatePosition = UpdateButtonPosition
 function MM:Init()
     if button then return end
 
-    -- Plain circular button frame with zero backdrops or square boxes
+    -- Plain button frame with zero backdrops or square boxes
     button = CreateFrame("Button", "CSPAMMinimapButton", Minimap)
     button:SetSize(32, 32)
     button:SetFrameStrata("MEDIUM")
@@ -47,11 +47,20 @@ function MM:Init()
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
 
-    -- Clean Full Circular Turret Icon (Zero square border/backdrop)
+    -- Clean Circular Turret Icon
     local icon = button:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints(button)
     icon:SetTexture(ICON_PATH)
     button.icon = icon
+
+    -- Circular Alpha Masking (Ensures 100% round silhouette on all minimaps)
+    if button.CreateMaskTexture then
+        local mask = button:CreateMaskTexture()
+        mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        mask:SetAllPoints(button)
+        icon:AddMaskTexture(mask)
+        button.mask = mask
+    end
 
     -- Drag Handlers
     button:SetScript("OnDragStart", function(self)
