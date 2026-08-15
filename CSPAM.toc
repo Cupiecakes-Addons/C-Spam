@@ -1,0 +1,17 @@
+## Interface: 110100
+## Title: |cffff3b30C-SPAM|r |cff00e5ff[Chat Intercept System]|r
+## Notes: Automated chat threat interceptor (C-RAM inspired). Eliminates political noise, gold spam, and toxic keywords before reaching your chat.
+## Author: Cupiecakes
+## Version: 1.0.0
+## SavedVariables: CSPAM_DB
+## IconTexture: Interface\AddOns\CSPAM\Media\icon.tga
+
+Locales\enUS.lua
+Data\DefaultPacks.lua
+Core\Init.lua
+Core\Normalizer.lua
+Core\Engine.lua
+Core\Events.lua
+UI\FilterListUI.lua
+UI\MinimapButton.lua
+UI\Config.lua
