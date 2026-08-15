@@ -1,4 +1,4 @@
-# <img src="Media/icon.png" width="36" height="36" align="center" /> C-SPAM: Counter-Spam Phalanx System
+# <img src="Media/logo.png" width="36" height="36" align="center" /> C-SPAM: Counter-Spam Phalanx System
 
 [![WoW Retail](https://img.shields.io/badge/WoW%20Retail-11.x%20%2F%2012.x-00e5ff.svg)](https://worldofwarcraft.com)
 [![Interface](https://img.shields.io/badge/Interface-110100-brightgreen.svg)]()
