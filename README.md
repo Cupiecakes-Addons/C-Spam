@@ -1,7 +1,7 @@
 # <img src="Media/logo.png" width="36" height="36" align="center" /> C-SPAM: Counter-Spam Phalanx System
 
-[![WoW Retail](https://img.shields.io/badge/WoW%20Retail-11.x%20%2F%2012.x-00e5ff.svg)](https://worldofwarcraft.com)
-[![Interface](https://img.shields.io/badge/Interface-110100-brightgreen.svg)]()
+[![WoW Retail](https://img.shields.io/badge/WoW%20Retail-12.1.0%20%2F%2011.x-00e5ff.svg)](https://worldofwarcraft.com)
+[![Interface](https://img.shields.io/badge/Interface-120100-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)]()
 [![Design](https://img.shields.io/badge/Style-ElvUI%201px-ff3b30.svg)]()
 
@@ -51,8 +51,8 @@
 
 ## 📥 Installation
 
-1. Download the latest release.
-2. Extract the `CSPAM` folder into your World of Warcraft directory:
+1. Download via **WowUp** from: `https://github.com/Cupiecakes-Addons/C-Spam`
+2. Or extract the `CSPAM` folder into:
    `World of Warcraft\_retail_\Interface\AddOns\CSPAM\`
 3. Launch WoW (or type `/reload` in-game).
 4. Type `/cs` or click the Minimap Turret icon to configure.
