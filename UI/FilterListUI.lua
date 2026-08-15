@@ -91,8 +91,8 @@ local function CreateElvButton(parent, text, width, height, isRed)
     return btn
 end
 
--- ElvUI Flat Checkbox with label and optional subtext
-local function CreateElvCheckBox(parent, labelText, subText, onClick)
+-- ElvUI Flat Checkbox with label and optional wrapping subtext
+local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
     local check = CreateFrame("Button", nil, parent, "BackdropTemplate")
     check:SetSize(16, 16)
     CreateElvBackdrop(check, C_BTN_NORMAL, C_INNER_BORD)
@@ -112,7 +112,8 @@ local function CreateElvCheckBox(parent, labelText, subText, onClick)
     if subText then
         local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         sub:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 23, -2)
-        sub:SetWidth(580)
+        sub:SetWidth(textWidth or (parent:GetWidth() > 50 and parent:GetWidth() - 40 or 580))
+        sub:SetWordWrap(true)
         sub:SetJustifyH("LEFT")
         sub:SetText(subText)
         check.sub = sub
@@ -152,8 +153,8 @@ local function CreateElvCheckBox(parent, labelText, subText, onClick)
     return check
 end
 
--- ElvUI Flat Radio Button
-local function CreateElvRadio(parent, labelText, subText, onClick)
+-- ElvUI Flat Radio Button with constrained text wrapping
+local function CreateElvRadio(parent, labelText, subText, onClick, textWidth)
     local radio = CreateFrame("Button", nil, parent, "BackdropTemplate")
     radio:SetSize(14, 14)
     CreateElvBackdrop(radio, C_BTN_NORMAL, C_INNER_BORD)
@@ -173,7 +174,8 @@ local function CreateElvRadio(parent, labelText, subText, onClick)
     if subText then
         local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         sub:SetPoint("TOPLEFT", radio, "BOTTOMLEFT", 21, -2)
-        sub:SetWidth(560)
+        sub:SetWidth(textWidth or (parent:GetWidth() > 50 and parent:GetWidth() - 40 or 300))
+        sub:SetWordWrap(true)
         sub:SetJustifyH("LEFT")
         sub:SetText(subText)
         radio.sub = sub
@@ -243,6 +245,7 @@ local function CreateElvCard(parent, titleText, descText, width, height)
         local desc = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         desc:SetPoint("TOPLEFT", 10, -24)
         desc:SetWidth(width - 20)
+        desc:SetWordWrap(true)
         desc:SetJustifyH("LEFT")
         desc:SetText(descText)
         card.desc = desc
@@ -282,7 +285,6 @@ function UI:Init()
     iconLogo:SetSize(20, 20)
     iconLogo:SetPoint("LEFT", 6, 0)
     iconLogo:SetTexture("Interface\\AddOns\\CSPAM\\Media\\icon.tga")
-    iconLogo:SetTexCoord(0.06, 0.94, 0.06, 0.94)
 
     local title = headerBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("LEFT", iconLogo, "RIGHT", 7, 0)
@@ -605,7 +607,7 @@ function UI:Init()
         CSPAM.db.action = "HIDE"
         p4.rHide:SetChecked(true)
         p4.rMask:SetChecked(false)
-    end)
+    end, 305)
     rHide:SetPoint("TOPLEFT", 12, -46)
     SetElvTooltip(rHide, "Kinetic Intercept", 
         "Silently suppresses the entire incoming chat message before it reaches your chat frame. No audio or visual notification is produced.")
@@ -615,7 +617,7 @@ function UI:Init()
         CSPAM.db.action = "MASK"
         p4.rMask:SetChecked(true)
         p4.rHide:SetChecked(false)
-    end)
+    end, 305)
     rMask:SetPoint("TOPLEFT", 12, -84)
     SetElvTooltip(rMask, "Electronic Jamming", 
         "Allows the message through to your chat frame, but replaces the detected keywords with '***' while keeping item and spell links completely safe.")
@@ -628,15 +630,15 @@ function UI:Init()
         "Safe allies will bypass the interceptor even if they send blocked keywords.", 338, 125)
     cardIFF:SetPoint("TOPRIGHT", -10, -10)
 
-    local cbFriends = CreateElvCheckBox(cardIFF, "Safe: Friends List", nil, function(c) CSPAM.db.whitelist.friends = c end)
+    local cbFriends = CreateElvCheckBox(cardIFF, "Safe: Friends List", nil, function(c) CSPAM.db.whitelist.friends = c end, 300)
     cbFriends:SetPoint("TOPLEFT", 12, -46)
     SetElvTooltip(cbFriends, "Bypass: Friends List", "Messages from Battle.net and character friends are never intercepted.")
 
-    local cbGuild = CreateElvCheckBox(cardIFF, "Safe: Guild Roster", nil, function(c) CSPAM.db.whitelist.guild = c end)
+    local cbGuild = CreateElvCheckBox(cardIFF, "Safe: Guild Roster", nil, function(c) CSPAM.db.whitelist.guild = c end, 300)
     cbGuild:SetPoint("TOPLEFT", 12, -72)
     SetElvTooltip(cbGuild, "Bypass: Guild Roster", "Messages from guild members are never intercepted.")
 
-    local cbParty = CreateElvCheckBox(cardIFF, "Safe: Party & Raid Allies", nil, function(c) CSPAM.db.whitelist.party = c end)
+    local cbParty = CreateElvCheckBox(cardIFF, "Safe: Party & Raid Allies", nil, function(c) CSPAM.db.whitelist.party = c end, 300)
     cbParty:SetPoint("TOPLEFT", 12, -98)
     SetElvTooltip(cbParty, "Bypass: Party & Raid Allies", "Messages from members of your current dungeon/raid group bypass the filter.")
 
@@ -644,7 +646,7 @@ function UI:Init()
     p4.cbGuild = cbGuild
     p4.cbParty = cbParty
 
-    -- Card 3: Monitored Airspace (Channels)
+    -- Card 3: Monitored Airspace (Channels) - 2 Columns
     local cardAirspace = CreateElvCard(p4, "MONITORED AIRSPACE (CHAT CHANNELS)", 
         "Select which chat channels the C-SPAM radar actively monitors and filters.", 684, 115)
     cardAirspace:SetPoint("TOPLEFT", 10, -145)
@@ -652,14 +654,14 @@ function UI:Init()
     local cbTrade = CreateElvCheckBox(cardAirspace, "Public Channels (Trade, Services, General, LFG)", 
         "Monitors public realm channels where boosting and political spam are most rampant.", function(c) 
         CSPAM.db.channels.CHAT_MSG_CHANNEL = c 
-    end)
+    end, 315)
     cbTrade:SetPoint("TOPLEFT", 12, -44)
     SetElvTooltip(cbTrade, "Public Channels", "Applies intercept rules to Trade, Services, General, LocalDefense, and LookingForGroup channels.")
 
     local cbClub = CreateElvCheckBox(cardAirspace, "Communities & Club Channels", 
         "Monitors WoW Community and custom player channels.", function(c) 
         CSPAM.db.channels.CHAT_MSG_COMMUNITIES_CHANNEL = c 
-    end)
+    end, 315)
     cbClub:SetPoint("TOPLEFT", 12, -80)
     SetElvTooltip(cbClub, "Communities & Clubs", "Applies intercept rules to Blizzard Community channels.")
 
@@ -667,15 +669,15 @@ function UI:Init()
         "Monitors local open-world chat (/say and /yell).", function(c)
         CSPAM.db.channels.CHAT_MSG_SAY = c
         CSPAM.db.channels.CHAT_MSG_YELL = c
-    end)
-    cbSay:SetPoint("TOPLEFT", 360, -44)
+    end, 315)
+    cbSay:SetPoint("TOPLEFT", 355, -44)
     SetElvTooltip(cbSay, "Local Say & Yell", "Monitors open-world spatial chat in cities and zones.")
 
     local cbWhisper = CreateElvCheckBox(cardAirspace, "Direct Whispers", 
         "Monitors direct private whispers from strangers (Allies still bypass if IFF is enabled).", function(c) 
         CSPAM.db.channels.CHAT_MSG_WHISPER = c 
-    end)
-    cbWhisper:SetPoint("TOPLEFT", 360, -80)
+    end, 315)
+    cbWhisper:SetPoint("TOPLEFT", 355, -80)
     SetElvTooltip(cbWhisper, "Direct Whispers", "Monitors 1-on-1 private whispers sent to you by other players.")
 
     p4.cbTrade = cbTrade
@@ -691,7 +693,7 @@ function UI:Init()
     local cbLeet = CreateElvCheckBox(cardEvasion, "Decode Camouflage, Leetspeak & Homoglyphs", 
         "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c) 
         CSPAM.db.options.checkLeet = c 
-    end)
+    end, 640)
     cbLeet:SetPoint("TOPLEFT", 12, -44)
     SetElvTooltip(cbLeet, "Decode Camouflage & Leetspeak", 
         "Translates visual lookalikes before filtering so spammers cannot bypass your blocklist.\n\n" ..
@@ -702,7 +704,7 @@ function UI:Init()
     local cbRepeat = CreateElvCheckBox(cardEvasion, "Collapse Stutter Evasion (e.g. 'traaaash' -> 'trash')", 
         "Collapses runs of 3+ identical letters and spaces between characters ('t.r.u.m.p' -> 'trump').", function(c) 
         CSPAM.db.options.collapseRepeats = c 
-    end)
+    end, 640)
     cbRepeat:SetPoint("TOPLEFT", 12, -76)
     SetElvTooltip(cbRepeat, "Collapse Stutter Evasion", 
         "Prevents players from bypassing filters by dragging out letters or inserting spacing/dots.\n\n" ..
@@ -716,7 +718,7 @@ function UI:Init()
         if CSPAM.Minimap and CSPAM.Minimap.Refresh then
             CSPAM.Minimap:Refresh()
         end
-    end)
+    end, 640)
     cbMinimap:SetPoint("TOPLEFT", 12, -108)
     SetElvTooltip(cbMinimap, "Minimap Turret Button", 
         "Toggles the C-SPAM minimap button.\n\n" ..
