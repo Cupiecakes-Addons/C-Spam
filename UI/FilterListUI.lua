@@ -20,6 +20,8 @@ local SOLID_TEX = "Interface\\Buttons\\WHITE8X8"
 local C_BG_DARK    = { 0.05, 0.05, 0.06, 0.78 }
 local C_BG_PANEL   = { 0.07, 0.07, 0.08, 0.70 }
 local C_BG_ROW_ALT = { 0.06, 0.06, 0.08, 0.50 }
+local C_ROW_ODD    = { 0.05, 0.05, 0.07, 0.35 }
+local C_ROW_BORDER = { 0.12, 0.12, 0.15, 0.50 }
 local C_BORDER     = { 0.00, 0.00, 0.00, 1.00 }
 local C_INNER_BORD = { 0.18, 0.18, 0.22, 0.85 }
 local C_ACCENT     = { 0.00, 0.70, 1.00, 1.00 } -- ElvUI Cyan
@@ -801,11 +803,19 @@ function UI:Toggle()
     end
 end
 
--- Hook called by Engine.lua when a threat is intercepted
+-- Hook called by Engine.lua when a threat is intercepted. Coalesces bursts:
+-- this fires from the chat-filter hot path, so instead of rebuilding the
+-- full log list synchronously per message, refreshes are batched to at
+-- most four per second.
+local logRefreshQueued = false
 function UI:OnLogUpdated()
-    if mainFrame and mainFrame:IsShown() and activeTab == 3 then
-        self:Refresh()
-    end
+    if not (mainFrame and mainFrame:IsShown() and activeTab == 3) then return end
+    if logRefreshQueued then return end
+    logRefreshQueued = true
+    C_Timer.After(0.25, function()
+        logRefreshQueued = false
+        UI:Refresh()
+    end)
 end
 
 function UI:Refresh()
@@ -844,6 +854,7 @@ function UI:Refresh()
                     if not row then
                         row = CreateFrame("Frame", nil, parent, "BackdropTemplate")
                         row:SetSize(656, 24)
+                        CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
                         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                         row.text:SetPoint("LEFT", 10, 0)
@@ -853,24 +864,26 @@ function UI:Refresh()
 
                         local delBtn = CreateElvButton(row, "×", 22, 18, true)
                         delBtn:SetPoint("RIGHT", -6, 0)
+                        delBtn:SetScript("OnClick", function(self)
+                            local idx = self:GetParent().dataIndex
+                            if idx then
+                                table.remove(CSPAM.db.customWords, idx)
+                                CSPAM.Engine:RebuildIndex()
+                                UI:Refresh()
+                            end
+                        end)
                         row.delBtn = delBtn
 
                         parent.rows[rowIndex] = row
                     end
 
-                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
-                    CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
+                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
+                    row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                     row:SetPoint("TOPLEFT", 0, -y)
                     row.text:SetText(item.text)
                     row.mode:SetText("|cffffd100[" .. (item.mode or "EXACT") .. "]|r")
-
-                    local itemIndex = i
-                    row.delBtn:SetScript("OnClick", function()
-                        table.remove(CSPAM.db.customWords, itemIndex)
-                        CSPAM.Engine:RebuildIndex()
-                        UI:Refresh()
-                    end)
+                    row.dataIndex = i
 
                     row:Show()
                     y = y + 26
@@ -908,6 +921,7 @@ function UI:Refresh()
                 if not row then
                     row = CreateFrame("Frame", nil, parent, "BackdropTemplate")
                     row:SetSize(656, 40)
+                    CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
                     row.header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                     row.header:SetPoint("TOPLEFT", 8, -4)
@@ -920,8 +934,8 @@ function UI:Refresh()
                     parent.rows[rowIndex] = row
                 end
 
-                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
-                CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
+                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
+                row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                 row:SetPoint("TOPLEFT", 0, -y)
                 local timeStr = date("%H:%M:%S", entry.timestamp or time())
