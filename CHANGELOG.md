@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.2] - 2026-08-16
+
+### Fixed
+- **Ads hidden inside hyperlink text are now caught.** Sellers wrap their entire ad in link display text (renamed battle pets / crafted links — the yellow "[WTS M+0 Dungeons…]" style), which the Hyperlink Shield previously excluded from matching entirely. The matcher now sees each link's *visible* text while still excluding link *data* (item ids, hex codes), so legitimate item/spell links keep their false-positive protection. Technique inspired by how BadBoy handles link spam.
+
+### Added
+- Boosting pack: `mythicstore` (boost-shop domain) and `vault fills` signatures.
+
+---
+
 ## [1.6.1] - 2026-08-16
 
 ### Added

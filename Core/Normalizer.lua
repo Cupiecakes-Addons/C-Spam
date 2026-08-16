@@ -183,9 +183,18 @@ function N.NormalizeMessage(rawMessage, options)
 
     local extracted, links = N.ExtractLinks(rawMessage)
 
-    -- Links only need to survive in `extracted` (for masking/restore). Strip the
-    -- placeholders from everything the matcher sees so they can never trip rules.
-    local matchSource = extracted:gsub("___CSPAMLINK%d+___", " ")
+    -- Spammers hide their ad text inside link display names (renamed battle
+    -- pets, crafted links), so each placeholder is swapped for the link's
+    -- VISIBLE text in the matching corpus. Link data (ids, colors, payload)
+    -- stays excluded, so item ids and hex codes can never trip rules, and
+    -- the placeholder sentinel itself never reaches the matcher.
+    local matchSource = extracted:gsub("___CSPAMLINK(%d+)___", function(id)
+        local link = links[tonumber(id)]
+        local display = link and link:match("|h(.-)|h")
+        if not display then return " " end
+        local text = display:gsub("[%[%]]", " ")
+        return " " .. text .. " "
+    end)
     local lower = N.ToLower(matchSource)
 
     -- Base sanitized text: replace punctuation/control chars with spaces

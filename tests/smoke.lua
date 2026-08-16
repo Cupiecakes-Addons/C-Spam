@@ -103,6 +103,14 @@ check("'WTS M+0 Dungeons' fires via 'wts m+'",
 check("legit 'saved to heroic' passes",
     eval("i got saved to heroic tonight so cant come").shouldFilter == false)
 
+-- Renamed-battle-pet trick: the whole ad lives in link DISPLAY text
+local PET_AD = "|cff0070dd|Hbattlepet:162:25:3:1546:325:278:BattlePet-0-000B1DE348|h[WTS M+0 Dungeons. Buy 6, Get 2 FREE!]|h|r Book early. "
+    .. "|cff0070dd|Hbattlepet:162:25:3:1546:325:278:BattlePet-0-000B1DE349|h[Visit gamer-choice.com]|h|r"
+check("ad hidden in link display text fires", eval(PET_AD).shouldFilter == true)
+local STORE_AD = "|cffffd000|Hquest:12345:70|h[GREAT VAULT]|h|r Your S2 Vault fills NOW, unlocks Aug 19 "
+    .. "|cff66bbff|Hquest:12346:70|h[MythicStore.com]|h|r"
+check("mythicstore link ad fires", eval(STORE_AD).shouldFilter == true)
+
 check("safe character bypasses", eval("m+ carry cheap", "Baddie-Realm").shouldFilter == false)
 check("IsValidMode rejects HTTPS / accepts phrase",
     E:IsValidMode("HTTPS") == false and E:IsValidMode("phrase") == true)

@@ -391,6 +391,8 @@ CSPAM.Packs = {
             { text = "leveling 80-90", mode = "PHRASE" },
             { text = "leveling 1-80", mode = "PHRASE" },
             { text = "gamer-choice", mode = "CONTAINS" },
+            { text = "mythicstore", mode = "CONTAINS" },
+            { text = "vault fills", mode = "PHRASE" },
         }
     },
 
