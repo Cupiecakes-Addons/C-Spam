@@ -3,7 +3,7 @@
 [![WoW Retail](https://img.shields.io/badge/WoW%20Retail-12.1.0%20%2F%2011.x-00e5ff.svg)](https://worldofwarcraft.com)
 [![Interface](https://img.shields.io/badge/Interface-120100-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)]()
-[![Design](https://img.shields.io/badge/Style-ElvUI%201px-ff3b30.svg)]()
+[![Design](https://img.shields.io/badge/Style-Tactical%201px-ff3b30.svg)]()
 
 **C-SPAM** is an automated in-game chat threat interceptor inspired by military **C-RAM** (Counter-Rocket, Artillery, and Mortar) air defense systems. It tracks, decodes, and neutralizes political discourse, gold/carry advertising, and toxic keywords with zero FPS impact.
 
