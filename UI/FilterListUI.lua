@@ -324,11 +324,7 @@ function UI:Init()
     local masterBtn = CreateElvButton(headerBar, "ARMED", 90, 20)
     masterBtn:SetPoint("RIGHT", closeBtn, "LEFT", -6, 0)
     masterBtn:SetScript("OnClick", function()
-        CSPAM.db.enabled = not CSPAM.db.enabled
-        UI:Refresh()
-        if CSPAM.Minimap and CSPAM.Minimap.Refresh then
-            CSPAM.Minimap:Refresh()
-        end
+        CSPAM:ToggleEnabled()
     end)
     SetElvTooltip(masterBtn, "Master Interceptor Switch", 
         "Globally arms or disarms all chat threat filtering across all channels.\n\n" ..
@@ -457,17 +453,8 @@ function UI:Init()
     local addBtn = CreateElvButton(p1, "+ Register Threat", 126, 24)
     addBtn:SetPoint("LEFT", modeBtn, "RIGHT", 6, 0)
     addBtn:SetScript("OnClick", function()
-        local text = addInput:GetText():trim()
-        if text ~= "" then
-            table.insert(CSPAM.db.customWords, {
-                text = text,
-                mode = selectedMode,
-                enabled = true,
-                category = "Custom"
-            })
+        if CSPAM:AddCustomRule(addInput:GetText(), selectedMode) then
             addInput:SetText("")
-            CSPAM.Engine:RebuildIndex()
-            UI:Refresh()
         end
     end)
 

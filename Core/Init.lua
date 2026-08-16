@@ -89,6 +89,52 @@ local function ClearActiveChatEditBox(editBox)
 end
 CSPAM.ClearActiveChatEditBox = ClearActiveChatEditBox
 
+-- Master ARM/DISARM used by the slash command, console button, and minimap
+function CSPAM:ToggleEnabled(silent)
+    CSPAM.db.enabled = not CSPAM.db.enabled
+    if not silent then
+        local statusMsg = CSPAM.db.enabled and L["SLASH_TOGGLE_ON"] or L["SLASH_TOGGLE_OFF"]
+        DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
+    end
+    if CSPAM.UI and CSPAM.UI.Refresh then
+        CSPAM.UI:Refresh()
+    end
+    if CSPAM.Minimap and CSPAM.Minimap.Refresh then
+        CSPAM.Minimap:Refresh()
+    end
+end
+
+-- Register a custom threat signature. Mode defaults to PHRASE for multi-word
+-- input (a single EXACT token can never contain whitespace) and EXACT
+-- otherwise. Returns true on success, or false plus "empty"/"exists".
+function CSPAM:AddCustomRule(text, mode)
+    text = text and text:trim() or ""
+    if text == "" then return false, "empty" end
+
+    if not mode then
+        mode = text:find("%s") and "PHRASE" or "EXACT"
+    end
+    mode = mode:upper()
+
+    for _, item in ipairs(CSPAM.db.customWords) do
+        if item.text:lower() == text:lower() and (item.mode or "EXACT"):upper() == mode then
+            return false, "exists"
+        end
+    end
+
+    table.insert(CSPAM.db.customWords, {
+        text = text,
+        mode = mode,
+        enabled = true,
+        category = "Custom",
+    })
+    CSPAM.Engine:RebuildIndex()
+    if CSPAM.UI and CSPAM.UI.Refresh then
+        CSPAM.UI:Refresh()
+    end
+    return true
+end
+
 local function InitializeAddon()
     if CSPAM.isInitialized then return end
 
@@ -175,39 +221,15 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
             CSPAM.UI:Toggle()
         end
     elseif cmd == "toggle" then
-        CSPAM.db.enabled = not CSPAM.db.enabled
-        local statusMsg = CSPAM.db.enabled and L["SLASH_TOGGLE_ON"] or L["SLASH_TOGGLE_OFF"]
-        DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
-        if CSPAM.UI and CSPAM.UI.Refresh then
-            CSPAM.UI:Refresh()
-        end
-        if CSPAM.Minimap and CSPAM.Minimap.Refresh then
-            CSPAM.Minimap:Refresh()
-        end
+        CSPAM:ToggleEnabled()
     elseif cmd == "add" then
         if arg and arg ~= "" then
-            local word = arg:lower():trim()
-            local exists = false
-            for _, item in ipairs(CSPAM.db.customWords) do
-                if item.text:lower() == word then
-                    exists = true
-                    break
-                end
-            end
-            if exists then
-                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_WORD_EXISTS"], word))
-            else
-                table.insert(CSPAM.db.customWords, {
-                    text = word,
-                    mode = "EXACT",
-                    enabled = true,
-                    category = "Custom"
-                })
-                CSPAM.Engine:RebuildIndex()
-                if CSPAM.UI and CSPAM.UI.Refresh then
-                    CSPAM.UI:Refresh()
-                end
+            local word = arg:trim()
+            local ok, reason = CSPAM:AddCustomRule(word)
+            if ok then
                 DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_ADDED_WORD"], word))
+            elseif reason == "exists" then
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_WORD_EXISTS"], word))
             end
         else
             DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_ADD"])
