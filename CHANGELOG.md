@@ -7,42 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-08-15
+
+### Added
+- **Complete Defense Pack Overhaul (223 Pre-Calibrated Signatures)**:
+  - **Political Discourse & Elections**: Added full roster of 2024/2026 candidates (`newsom`, `trudeau`, `desantis`, `walz`, etc.), parties & movements (`dnc`, `gop`, `blm`, `libertarian`, `tories`, `labour`), culture war buzzwords (`woke`, `anti-woke`, `dei`, `esg`, `marxist`, `fascist`, `socialist`), and government terms (`ballot`, `midterms`, `scotus`, `congress`, `filibuster`, `border crisis`).
+  - **Carries, Boosting & Gold Seller Spam**: Added service terms (`pilot`, `selfplay`, `loot funnel`, `armor stack`, `trader run`), seasonal/endgame content (`ksm`, `ksh`, `aotc`, `cutting edge`, `vault unlock`, `+10 vault`, `+12 vault`, `10-15+`, `heroic clear`, `mythic clear`, `boss mount`), third-party links & payment services (`t.me/`, `.gg/`, `join server`, `twitch.tv/`, `youtube.com/`, `cheapest gold`, `fast delivery`, `instant trade`, `g2g`, `skycoach`, `wowvendor`, `playerauctions`, `paypal`, `crypto`), and known boosting communities (`huokan`, `sylvanas`, `nova booster`, `gallywix`).
+  - **Toxicity, Harassment & Griefing**: Added death wishes (`neck yourself`, `rope yourself`, `drink bleach`, `get cancer`, `touch high voltage`, `end yourself`, `off yourself`), gamer degradation (`dogwater`, `uninstall`, `delete the game`, `boosted animal`, `subhuman`, `room temp iq`, `braindead`, `clown player`, `waste of oxygen`, `npc trash`, `neckbeard`), and role/match griefing (`tank diff`, `healer diff`, `dps diff`, `role diff`, `m+ bricked`, `hard stuck`, `grey parser`, `gray parse`, `carried trash`, `buy a boost`, `autist`, `sped`, `cuck`, `troglodyte`).
+
+---
+
 ## [1.1.0] - 2026-08-15
 
 ### Added
-- **Expanded Boosting & Carries Defense Pack**: Added 38 new calibrated signatures to the *Carries & Gold Spam* pack covering power leveling, AFK leveling, dungeon/delve carries, level brackets (`power level`, `powerleveling`, `fast power level`, `can afk`, `full afk`, `wts 1-80`, `wts 70-80`, `delve boost`, `wts keys`, etc.) to eliminate modern Trade/Services spam.
+- **Power Leveling Signatures**: Added initial power leveling and level bracket signatures (`power level`, `wts 1-80`, `can afk`).
 
 ---
 
 ## [1.0.9] - 2026-08-15
 
 ### Fixed
-- **Subtext Right-Margin Bounding Widths**: Reduced subtext wrapping widths to `280px` on 2-column cards.
+- **Subtext Bounding Widths**: Reduced subtext wrapping widths to `280px` on 2-column cards.
 
 ---
 
-## [1.0.8] - 2026-08-15
+## [1.0.0] - 2026-08-15
 
-### Fixed
-- **Radar & Config Card Heights & Padding**: Increased vertical padding and height on Monitored Airspace (Card 3).
-
----
-
-## [1.0.7] - 2026-08-15
-
-### Fixed
-- **Normalizer Leetspeak Capture Error**: Replaced regex pattern substitution with single-pass table lookup.
-
----
-
-## [1.0.5] - 2026-08-15
-
-### Fixed
-- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture`.
-
----
-
-## [1.0.4] - 2026-08-15
-
-### Changed
-- **WoW Retail 12.1.0 Compatibility**: Updated `.toc` interface headers to `120100`.
+### Added
+- Initial Release of C-SPAM Phalanx Defense System.
