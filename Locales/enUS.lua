@@ -102,4 +102,5 @@ L["IE_DESC"] = "Export active threat signatures to share with guildmates, or pas
 L["BTN_IMPORT"] = "Import Matrix"
 L["BTN_EXPORT"] = "Export Matrix"
 L["IE_SUCCESS"] = "|cffff3b30C-SPAM:|r Successfully loaded %d threat signatures into Active Matrix."
+L["IE_SUCCESS_DETAIL"] = "|cffff3b30C-SPAM:|r Loaded %d new threat signatures into the Active Matrix (%d duplicates skipped)."
 L["IE_ERROR"] = "|cffff2020C-SPAM Error:|r Invalid signature payload format."

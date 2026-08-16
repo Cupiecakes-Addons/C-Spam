@@ -757,30 +757,47 @@ function UI:Init()
     importBtn:SetPoint("BOTTOMLEFT", exportBtn, "BOTTOMRIGHT", 8, 0)
     importBtn:SetScript("OnClick", function()
         local text = ieEditBox:GetText()
-        local count = 0
+
+        local existing = {}
+        for _, item in ipairs(CSPAM.db.customWords) do
+            existing[(item.mode or "EXACT"):upper() .. ":" .. item.text:lower()] = true
+        end
+
+        local added, skipped = 0, 0
         for line in text:gmatch("[^\r\n]+") do
             line = line:trim()
             if line ~= "" then
                 local mode, word = line:match("^(%w+):(.*)$")
-                if not mode then
+                if mode and CSPAM.Engine:IsValidMode(mode) then
+                    mode = mode:upper()
+                    word = word:trim()
+                else
+                    -- Not a recognized MODE: prefix (e.g. a pasted URL like
+                    -- "https://..."): treat the whole line as the signature
                     word = line
-                    mode = "EXACT"
+                    mode = word:find("%s") and "PHRASE" or "EXACT"
                 end
-                word = word:trim()
                 if word ~= "" then
-                    table.insert(CSPAM.db.customWords, {
-                        text = word,
-                        mode = mode:upper(),
-                        enabled = true,
-                        category = "Custom"
-                    })
-                    count = count + 1
+                    local dedupeKey = mode .. ":" .. word:lower()
+                    if existing[dedupeKey] then
+                        skipped = skipped + 1
+                    else
+                        existing[dedupeKey] = true
+                        table.insert(CSPAM.db.customWords, {
+                            text = word,
+                            mode = mode,
+                            enabled = true,
+                            category = "Custom"
+                        })
+                        added = added + 1
+                    end
                 end
             end
         end
+
         CSPAM.Engine:RebuildIndex()
         UI:Refresh()
-        DEFAULT_CHAT_FRAME:AddMessage(string.format(L["IE_SUCCESS"] or "Loaded %d threat signatures.", count))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(L["IE_SUCCESS_DETAIL"] or "Loaded %d new threat signatures (%d duplicates skipped).", added, skipped))
     end)
     SetElvTooltip(importBtn, "Import Matrix Data", "Parses the text box (one signature per line) and adds all entries into your active Threat Matrix.")
 
