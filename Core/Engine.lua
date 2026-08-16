@@ -102,31 +102,56 @@ function E:IsSenderWhitelisted(senderName, senderGUID)
         return true
     end
 
-    -- Character name whitelist
-    local senderClean = senderName:lower():gsub("%-.+$", "")
-    if db.whitelist.characters and db.whitelist.characters[senderClean] then
-        return true
-    end
-
-    -- Friends Whitelist
-    if db.whitelist.friends and senderGUID and senderGUID ~= "" then
-        if C_FriendList and C_FriendList.IsFriend and C_FriendList.IsFriend(senderGUID) then
-            return true
+    -- 1. Friends list (BNet & Character)
+    if db.whitelist.friends then
+        if C_FriendList and C_FriendList.IsFriend then
+            if senderGUID and C_FriendList.IsFriend(senderGUID) then return true end
         end
-        if C_BattleNet and C_BattleNet.GetAccountInfoByGUID and C_BattleNet.GetAccountInfoByGUID(senderGUID) then
-            return true
+        local numFriends = C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
+        for i = 1, numFriends do
+            local info = C_FriendList.GetFriendInfoByIndex(i)
+            if info and info.name and (info.name == senderName or senderName:match("^" .. info.name .. "%-")) then
+                return true
+            end
+        end
+        if BNGetNumFriends then
+            local numBNet = BNGetNumFriends()
+            for i = 1, numBNet do
+                local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+                if accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.characterName then
+                    local cName = accountInfo.gameAccountInfo.characterName
+                    if cName == senderName or senderName:match("^" .. cName .. "%-") then
+                        return true
+                    end
+                end
+            end
         end
     end
 
-    -- Guild Whitelist
-    if db.whitelist.guild and UnitIsInMyGuild and UnitIsInMyGuild(senderName) then
-        return true
+    -- 2. Guild Members
+    if db.whitelist.guild and IsInGuild() then
+        local numGuild = GetNumGuildMembers()
+        for i = 1, numGuild do
+            local name = GetGuildRosterInfo(i)
+            if name and (name == senderName or name:match("^" .. senderName .. "%-") or senderName:match("^" .. name .. "%-")) then
+                return true
+            end
+        end
     end
 
-    -- Party / Raid Whitelist
-    if db.whitelist.party then
-        if (UnitInParty and UnitInParty(senderName)) or (UnitInRaid and UnitInRaid(senderName)) then
-            return true
+    -- 3. Party & Raid Members
+    if db.whitelist.party and (IsInGroup() or IsInRaid()) then
+        local numGroup = GetNumGroupMembers()
+        local unitPrefix = IsInRaid() and "raid" or "party"
+        for i = 1, numGroup do
+            local unit = (unitPrefix == "party" and i == numGroup) and "player" or (unitPrefix .. i)
+            local name, realm = UnitName(unit)
+            if name then
+                local fullName = realm and (name .. "-" .. realm) or name
+                if fullName == senderName or name == senderName then
+                    return true
+                end
+            end
         end
     end
 
@@ -255,6 +280,11 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
             })
             while #db.filteredLog > (db.options.maxLogEntries or 100) do
                 table.remove(db.filteredLog)
+            end
+
+            -- Live UI update if Intercept Log tab is open
+            if CSPAM.UI and CSPAM.UI.OnLogUpdated then
+                CSPAM.UI:OnLogUpdated()
             end
         end
 

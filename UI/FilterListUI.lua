@@ -594,6 +594,11 @@ function UI:Init()
     logScrollFrame:SetScrollChild(logContent)
     p3.logContent = logContent
 
+    local emptyMsg = p3:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    emptyMsg:SetPoint("CENTER", p3, "CENTER", 0, -10)
+    emptyMsg:SetText("|cff666666[ RADAR ACTIVE ] Standing by for telemetry...\nIntercepted chat threats will appear here in real-time.|r")
+    p3.emptyMsg = emptyMsg
+
     -- =========================================================================
     -- TAB 4: RADAR & CONFIG
     -- =========================================================================
@@ -823,6 +828,13 @@ function UI:Toggle()
     end
 end
 
+-- Hook called by Engine.lua when a threat is intercepted
+function UI:OnLogUpdated()
+    if mainFrame and mainFrame:IsShown() and activeTab == 3 then
+        self:Refresh()
+    end
+end
+
 function UI:Refresh()
     if not mainFrame or not mainFrame:IsShown() then return end
 
@@ -914,8 +926,10 @@ function UI:Refresh()
         local y = 0
         local rowIndex = 0
 
-        if CSPAM.db and CSPAM.db.filteredLog then
-            for i, entry in ipairs(CSPAM.db.filteredLog) do
+        local logEntries = CSPAM.db and CSPAM.db.filteredLog
+        if logEntries and #logEntries > 0 then
+            if p3.emptyMsg then p3.emptyMsg:Hide() end
+            for i, entry in ipairs(logEntries) do
                 rowIndex = rowIndex + 1
                 local row = parent.rows[rowIndex]
                 if not row then
@@ -943,6 +957,8 @@ function UI:Refresh()
                 row:Show()
                 y = y + 42
             end
+        else
+            if p3.emptyMsg then p3.emptyMsg:Show() end
         end
 
         parent:SetHeight(math.max(y, 380))
