@@ -375,6 +375,22 @@ CSPAM.Packs = {
             { text = "g.o.l.d.s", mode = "CONTAINS" },
             { text = "d-i-s-c-o-r-d", mode = "CONTAINS" },
             { text = "d.s.c.g.g", mode = "CONTAINS" },
+            -- Raid-sale boilerplate & boost-shop sites (observed live spam, Aug 2026).
+            -- Modern sellers avoid "boost/carry/gold" entirely and advertise via
+            -- raid links plus phrases like "SAVED HEROIC [GOLD ONLY - PAY IN RAID]".
+            { text = "saved heroic", mode = "PHRASE" },
+            { text = "gold only", mode = "PHRASE" },
+            { text = "pay in raid", mode = "PHRASE" },
+            { text = "best service", mode = "PHRASE" },
+            { text = "best price guaranteed", mode = "PHRASE" },
+            { text = "gear service", mode = "PHRASE" },
+            { text = "pm for booking", mode = "PHRASE" },
+            { text = "world tour", mode = "PHRASE" },
+            { text = "24/7 support", mode = "PHRASE" },
+            { text = "80-90 leveling", mode = "PHRASE" },
+            { text = "leveling 80-90", mode = "PHRASE" },
+            { text = "leveling 1-80", mode = "PHRASE" },
+            { text = "gamer-choice", mode = "CONTAINS" },
         }
     },
 

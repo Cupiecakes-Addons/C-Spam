@@ -94,6 +94,15 @@ check("repeat spam aggregates in log",
     #CSPAM.db.filteredLog == 1 and CSPAM.db.filteredLog[1].count == 3)
 check("repeats still counted in stats", CSPAM.db.stats.totalFiltered == filteredBefore + 3)
 
+-- Live-spam replay: modern raid-sale ads avoid classic boost/carry/gold words
+local RAID_LINK = "|cff66bbff|Hjournal:0:1300:16|h[The Voidspire]|h|r"
+check("raid-sale boilerplate fires (saved heroic / gold only)",
+    eval("WTS BEST SERVICE. " .. RAID_LINK .. " SPOREFALL SAVED HEROIC [GOLD ONLY - PAY IN RAID] PM for booking.").shouldFilter == true)
+check("'WTS M+0 Dungeons' fires via 'wts m+'",
+    eval("[WTS M+0 Dungeons. Buy 6, Get 2 FREE! Starts within a few minutes!]").shouldFilter == true)
+check("legit 'saved to heroic' passes",
+    eval("i got saved to heroic tonight so cant come").shouldFilter == false)
+
 check("safe character bypasses", eval("m+ carry cheap", "Baddie-Realm").shouldFilter == false)
 check("IsValidMode rejects HTTPS / accepts phrase",
     E:IsValidMode("HTTPS") == false and E:IsValidMode("phrase") == true)

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.1] - 2026-08-16
+
+### Added
+- **Boosting pack: 13 signatures for modern raid-sale spam** observed live in Trade (Services): `saved heroic`, `gold only`, `pay in raid`, `best service`, `best price guaranteed`, `gear service`, `pm for booking`, `world tour`, `24/7 support`, refreshed `80-90` leveling ranges, and the `gamer-choice` boost shop. These ads avoid the classic boost/carry/gold vocabulary entirely, advertising via raid links plus phrases like "SAVED HEROIC [GOLD ONLY · PAY IN RAID]".
+
+### Notes
+- Enabling a pack only affects messages that arrive afterward — lines already in your chat window are never retro-filtered.
+- The `aotc` signature is intentionally aggressive and will also intercept guild-recruitment messages that mention AOTC.
+
+---
+
 ## [1.6.0] - 2026-08-16
 
 ### Fixed
