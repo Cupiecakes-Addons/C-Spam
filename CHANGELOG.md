@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-08-15
+
+### Added
+- **Expanded Boosting & Carries Defense Pack**: Added 38 new calibrated signatures to the *Carries & Gold Spam* pack covering power leveling, AFK leveling, dungeon/delve carries, level brackets (`power level`, `powerleveling`, `fast power level`, `can afk`, `full afk`, `wts 1-80`, `wts 70-80`, `delve boost`, `wts keys`, etc.) to eliminate modern Trade/Services spam.
+
+---
+
 ## [1.0.9] - 2026-08-15
 
 ### Fixed
-- **Subtext Right-Margin Bounding Widths**: Reduced subtext wrapping widths from `315px` to `280px` on 2-column cards, accounting for the 23px checkbox indentation so descriptions never bleed across the right border of cards.
+- **Subtext Right-Margin Bounding Widths**: Reduced subtext wrapping widths to `280px` on 2-column cards.
 
 ---
 
@@ -24,26 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.7] - 2026-08-15
 
 ### Fixed
-- **Normalizer Leetspeak Capture Error**: Replaced regex pattern substitution with single-pass table lookup (`text:gsub(".", LEET_MAP)`).
+- **Normalizer Leetspeak Capture Error**: Replaced regex pattern substitution with single-pass table lookup.
 
 ---
 
 ## [1.0.5] - 2026-08-15
 
 ### Fixed
-- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture` (`TempPortraitAlphaMask`).
-- **UI Description Text Wrapping**: Constrained all subtext font strings in the Radar & Config console tab.
+- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture`.
 
 ---
 
 ## [1.0.4] - 2026-08-15
 
 ### Changed
-- **WoW Retail 12.1.0 (Interface 120100) Compatibility**: Updated `.toc` interface headers to `120100`.
-
----
-
-## [1.0.0] - 2026-08-15
-
-### Added
-- Initial Release of C-SPAM Phalanx Defense System.
+- **WoW Retail 12.1.0 Compatibility**: Updated `.toc` interface headers to `120100`.
