@@ -9,17 +9,37 @@ local containsList = {}
 local phraseList = {}
 local regexList = {}
 
--- LRU Cache for repeat message handling
+-- Decision cache for repeat spam payloads, keyed by the raw message string
+-- itself (Lua interns strings, so lookups are O(1) with no collision risk).
+-- Entries live in a fixed ring: each key owns exactly one slot, and inserting
+-- into an occupied slot evicts that slot's previous key.
 local decisionCache = {}
-local cacheOrder = {}
+local cacheSlots = {}
+local cacheSlotIdx = 0
 local MAX_CACHE_SIZE = 128
+local CACHE_TTL = 20
 
-local function GetStringHash(str)
-    local hash = 5381
-    for i = 1, #str do
-        hash = ((hash * 33) + str:byte(i)) % 4294967296
+local function CacheDecision(key, matched, result)
+    local entry = decisionCache[key]
+    if entry then
+        entry.time, entry.matched, entry.result = time(), matched, result
+        return
     end
-    return hash
+    cacheSlotIdx = (cacheSlotIdx % MAX_CACHE_SIZE) + 1
+    local evicted = cacheSlots[cacheSlotIdx]
+    if evicted ~= nil then
+        decisionCache[evicted] = nil
+    end
+    cacheSlots[cacheSlotIdx] = key
+    decisionCache[key] = { time = time(), matched = matched, result = result }
+end
+
+-- Wipe cached decisions; called whenever anything that influences a verdict
+-- changes (rules, engagement action, normalizer options)
+function E:InvalidateCache()
+    table.wipe(decisionCache)
+    table.wipe(cacheSlots)
+    cacheSlotIdx = 0
 end
 
 function E:RebuildIndex()
@@ -27,8 +47,7 @@ function E:RebuildIndex()
     table.wipe(containsList)
     table.wipe(phraseList)
     table.wipe(regexList)
-    table.wipe(decisionCache)
-    table.wipe(cacheOrder)
+    self:InvalidateCache()
 
     local function AddRule(text, mode, category, packName)
         if not text or text == "" then return end
@@ -190,10 +209,9 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
 
     db.stats.totalScanned = (db.stats.totalScanned or 0) + 1
 
-    -- Check LRU Cache for repeat spam payloads
-    local hash = GetStringHash(rawMessage)
-    local cached = decisionCache[hash]
-    if cached and (time() - cached.time < 20) then
+    -- Check decision cache for repeat spam payloads
+    local cached = decisionCache[rawMessage]
+    if cached and (time() - cached.time < CACHE_TTL) then
         if cached.matched then
             db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
             return cached.result
@@ -305,17 +323,7 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
         result = { shouldFilter = false }
     end
 
-    -- Store in LRU cache
-    if #cacheOrder >= MAX_CACHE_SIZE then
-        local oldest = table.remove(cacheOrder, 1)
-        decisionCache[oldest] = nil
-    end
-    table.insert(cacheOrder, hash)
-    decisionCache[hash] = {
-        time = time(),
-        matched = (matchedRule ~= nil),
-        result = result,
-    }
+    CacheDecision(rawMessage, matchedRule ~= nil, result)
 
     return result
 end

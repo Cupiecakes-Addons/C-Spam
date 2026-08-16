@@ -617,6 +617,7 @@ function UI:Init()
     local rHide = CreateElvRadio(cardDoctrine, "Kinetic Intercept (Silent Drop)", 
         "Message is completely dropped. Nothing appears in your chat window.", function()
         CSPAM.db.action = "HIDE"
+        CSPAM.Engine:InvalidateCache()
         p4.rHide:SetChecked(true)
         p4.rMask:SetChecked(false)
     end, 280)
@@ -627,6 +628,7 @@ function UI:Init()
     local rMask = CreateElvRadio(cardDoctrine, "Electronic Jamming (Censor ***)", 
         "Message passes through, but matching keywords are censored with asterisks.", function()
         CSPAM.db.action = "MASK"
+        CSPAM.Engine:InvalidateCache()
         p4.rMask:SetChecked(true)
         p4.rHide:SetChecked(false)
     end, 280)
@@ -703,8 +705,9 @@ function UI:Init()
     cardEvasion:SetPoint("TOPLEFT", 10, -308)
 
     local cbLeet = CreateElvCheckBox(cardEvasion, "Decode Camouflage, Leetspeak & Homoglyphs", 
-        "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c) 
-        CSPAM.db.options.checkLeet = c 
+        "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c)
+        CSPAM.db.options.checkLeet = c
+        CSPAM.Engine:InvalidateCache()
     end, 610)
     cbLeet:SetPoint("TOPLEFT", 12, -44)
     SetElvTooltip(cbLeet, "Decode Camouflage & Leetspeak", 
@@ -714,8 +717,9 @@ function UI:Init()
         "A spammer typing 'tr0mp' or 'b!den' or 'wts b00st' is automatically decoded and intercepted.")
 
     local cbRepeat = CreateElvCheckBox(cardEvasion, "Collapse Stutter Evasion (e.g. 'traaaash' -> 'trash')", 
-        "Collapses runs of 3+ identical letters and spaces between characters ('t.r.u.m.p' -> 'trump').", function(c) 
-        CSPAM.db.options.collapseRepeats = c 
+        "Collapses runs of 3+ identical letters and spaces between characters ('t.r.u.m.p' -> 'trump').", function(c)
+        CSPAM.db.options.collapseRepeats = c
+        CSPAM.Engine:InvalidateCache()
     end, 610)
     cbRepeat:SetPoint("TOPLEFT", 12, -78)
     SetElvTooltip(cbRepeat, "Collapse Stutter Evasion", 
