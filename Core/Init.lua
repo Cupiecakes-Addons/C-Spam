@@ -10,11 +10,7 @@ local defaultDB = {
     version = 1,
     enabled = true,
     action = "HIDE", -- "HIDE" (Kinetic Intercept), "MASK" (Jamming), "LOG" (Surveillance)
-    packs = {
-        politics = true,
-        boosting = false,
-        toxicity = true,
-    },
+    packs = {},
     customWords = {},
     whitelist = {
         friends = true,
@@ -154,6 +150,16 @@ local function InitializeAddon()
             end
         end
         CSPAM.db.channels = nil
+    end
+
+    -- Seed pack toggles from the pack definitions so new packs added to
+    -- Data/DefaultPacks.lua get their default state automatically
+    if CSPAM.Packs then
+        for packKey, pack in pairs(CSPAM.Packs) do
+            if CSPAM.db.packs[packKey] == nil then
+                CSPAM.db.packs[packKey] = (pack.enabled ~= false)
+            end
+        end
     end
 
     -- Normalize per-character whitelist keys to lowercase short names

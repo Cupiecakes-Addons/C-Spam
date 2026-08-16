@@ -4,6 +4,8 @@ CSPAM.Packs = {
     politics = {
         name = "Political Discourse & Elections",
         description = "Political candidates, parties, elections, ideology, and government discourse.",
+        example = "Intercepts: 'trump', 'biden', 'kamala harris', 'democrats', 'republicans', 'project 2025', 'elections', etc.",
+        order = 1,
         enabled = true,
         words = {
             { text = "trump", mode = "EXACT" },
@@ -168,6 +170,8 @@ CSPAM.Packs = {
     boosting = {
         name = "Carries, Boosting & Gold Seller Spam",
         description = "WTS carries, paid M+ boosts, power leveling, external platforms, and gold sellers.",
+        example = "Intercepts: 'wts boost', 'm+ carry', 'afk leveling', 'mythic carry', 'discord.gg/', etc.",
+        order = 2,
         enabled = false,
         words = {
             { text = "wts boost", mode = "PHRASE" },
@@ -377,6 +381,8 @@ CSPAM.Packs = {
     toxicity = {
         name = "Toxicity, Harassment & Hostile Slurs",
         description = "Hate speech, severe harassment, death wishes, and unmoderated toxicity.",
+        example = "Intercepts: 'kys', 'kill yourself', and major hate speech slurs.",
+        order = 3,
         enabled = true,
         words = {
             { text = "kys", mode = "EXACT" },

@@ -504,54 +504,49 @@ function UI:Init()
     local p2 = contentPanels[2]
     p2.packCheckboxes = {}
 
-    local packDetails = {
-        politics = {
-            title = "POLITICAL DISCOURSE & ELECTIONS",
-            sub = "Filters US and international political candidates, election campaigns, government discourse, party rhetoric, and partisan arguments.",
-            example = "Intercepts: 'trump', 'biden', 'kamala harris', 'democrats', 'republicans', 'project 2025', 'elections', etc.",
-        },
-        boosting = {
-            title = "CARRIES, BOOSTING & GOLD SELLER SPAM",
-            sub = "Neutralizes advertising for paid Mythic+ carries, raid sales, AFK leveling, external discord links, and gold sellers in Trade/Services.",
-            example = "Intercepts: 'wts boost', 'm+ carry', 'afk leveling', 'mythic carry', 'discord.gg/', etc.",
-        },
-        toxicity = {
-            title = "TOXICITY, HARASSMENT & HOSTILE SLURS",
-            sub = "Intervention layer filtering severe harassment, death wishes, toxic toxicity, and unmoderated hate slurs before they reach your chat.",
-            example = "Intercepts: 'kys', 'kill yourself', and major hate speech slurs.",
-        }
-    }
+    -- Cards are built straight from Data/DefaultPacks.lua (name, description,
+    -- example, order): a new pack added there appears here automatically
+    local packKeys = {}
+    for key in pairs(CSPAM.Packs or {}) do
+        packKeys[#packKeys + 1] = key
+    end
+    table.sort(packKeys, function(a, b)
+        local oa = CSPAM.Packs[a].order or math.huge
+        local ob = CSPAM.Packs[b].order or math.huge
+        if oa ~= ob then return oa < ob end
+        return a < b
+    end)
 
-    local packKeys = { "politics", "boosting", "toxicity" }
     local cardY = -12
     for _, key in ipairs(packKeys) do
         local pack = CSPAM.Packs[key]
-        local details = packDetails[key]
-        if pack and details then
-            local card = CreateElvCard(p2, details.title, details.sub, 684, 105)
-            card:SetPoint("TOPLEFT", 10, cardY)
+        local packKey = key
+        local title = (pack.name or key):upper()
+        local card = CreateElvCard(p2, title, pack.description, 684, 105)
+        card:SetPoint("TOPLEFT", 10, cardY)
 
-            local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
-                CSPAM.db.packs[key] = checked
-                CSPAM.Engine:RebuildIndex()
-                UI:Refresh()
-            end)
-            cb:SetPoint("TOPLEFT", 12, -48)
+        local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
+            CSPAM.db.packs[packKey] = checked
+            CSPAM.Engine:RebuildIndex()
+            UI:Refresh()
+        end)
+        cb:SetPoint("TOPLEFT", 12, -48)
 
-            local badge = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            badge:SetPoint("LEFT", cb.text, "RIGHT", 14, 0)
-            badge:SetText(string.format("(|cffffd100%d calibrated signatures|r)", pack.words and #pack.words or 0))
+        local badge = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        badge:SetPoint("LEFT", cb.text, "RIGHT", 14, 0)
+        badge:SetText(string.format("(|cffffd100%d calibrated signatures|r)", pack.words and #pack.words or 0))
 
+        if pack.example then
             local ex = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
             ex:SetPoint("TOPLEFT", 12, -74)
             ex:SetWidth(660)
             ex:SetJustifyH("LEFT")
-            ex:SetText("|cff888888" .. details.example .. "|r")
-
-            SetElvTooltip(cb, details.title, details.sub, details.example)
-            p2.packCheckboxes[key] = cb
-            cardY = cardY - 118
+            ex:SetText("|cff888888" .. pack.example .. "|r")
         end
+
+        SetElvTooltip(cb, title, pack.description, pack.example)
+        p2.packCheckboxes[packKey] = cb
+        cardY = cardY - 118
     end
 
     -- =========================================================================
