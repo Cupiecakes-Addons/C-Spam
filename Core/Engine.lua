@@ -8,6 +8,11 @@ local function EscapePattern(str)
     return (str:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
 end
 
+local VALID_MODES = { EXACT = true, CONTAINS = true, PHRASE = true, REGEX = true, PATTERN = true }
+function E:IsValidMode(mode)
+    return mode ~= nil and VALID_MODES[mode:upper()] == true
+end
+
 -- Compiled Index Tables
 local exactWords = {}
 local containsList = {}
@@ -54,31 +59,44 @@ function E:RebuildIndex()
     table.wipe(regexList)
     self:InvalidateCache()
 
+    -- EXACT/PHRASE rule text is cleaned exactly like incoming messages
+    -- (punctuation -> spaces), so both sides live in the same normalized
+    -- space and rules like "m+ carry" or "pro-life" can actually match.
     local function AddRule(text, mode, category, packName)
         if not text or text == "" then return end
-        local cleanText = text:lower():trim()
         local modeUpper = (mode or "EXACT"):upper()
 
-        if modeUpper == "EXACT" then
-            exactWords[cleanText] = { text = text, mode = modeUpper, category = category, pack = packName }
-        elseif modeUpper == "CONTAINS" then
-            local escaped = EscapePattern(cleanText)
-            table.insert(containsList, {
-                raw = text,
-                pattern = escaped,
-                category = category,
-                pack = packName,
-            })
-        elseif modeUpper == "PHRASE" then
+        if modeUpper == "EXACT" or modeUpper == "PHRASE" then
+            local cleanText = text:lower():gsub("[%p%c]", " "):gsub("%s+", " "):trim()
             local words = {}
             for w in cleanText:gmatch("%S+") do
-                table.insert(words, EscapePattern(w))
+                words[#words + 1] = w
             end
-            if #words > 0 then
-                local pattern = table.concat(words, "%s+")
+
+            if #words == 1 then
+                -- Single tokens match via the O(1) token set
+                exactWords[words[1]] = { text = text, mode = modeUpper, category = category, pack = packName }
+            elseif #words > 1 then
+                -- Multi-word entries (including multi-word EXACT input, which a
+                -- single whitespace-free token could never satisfy) compile to a
+                -- word-boundary-anchored phrase pattern
+                for i = 1, #words do
+                    words[i] = EscapePattern(words[i])
+                end
                 table.insert(phraseList, {
                     raw = text,
-                    pattern = pattern,
+                    pattern = "%f[%w]" .. table.concat(words, "%s+") .. "%f[%W]",
+                    category = category,
+                    pack = packName,
+                })
+            end
+        elseif modeUpper == "CONTAINS" then
+            local lowered = text:lower():trim()
+            if lowered ~= "" then
+                -- Matched with plain (non-pattern) find; no escaping needed
+                table.insert(containsList, {
+                    raw = text,
+                    text = lowered,
                     category = category,
                     pack = packName,
                 })
@@ -303,10 +321,10 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
         end
     end
 
-    -- 3. Contains / Substring Scanning
+    -- 3. Contains / Substring Scanning (plain find: no pattern compilation)
     if not matchedRule and #containsList > 0 then
         for _, rule in ipairs(containsList) do
-            if norm.lower:find(rule.pattern) or (norm.leetClean and norm.leetClean:find(rule.pattern)) then
+            if norm.lower:find(rule.text, 1, true) or (norm.leetClean and norm.leetClean:find(rule.text, 1, true)) then
                 matchedRule = rule
                 matchedWord = rule.raw
                 break
