@@ -647,49 +647,31 @@ function UI:Init()
     p4.cbGuild = cbGuild
     p4.cbParty = cbParty
 
-    -- Card 3: Monitored Airspace (Channels) - 2 Columns (Width 684, Left textWidth 280, Right textWidth 280)
-    local cardAirspace = CreateElvCard(p4, "MONITORED AIRSPACE (CHAT CHANNELS)", 
-        "Select which chat channels the C-SPAM radar actively monitors and filters.", 684, 142)
+    -- Card 3: Monitored Airspace (Channels) — built from Events.ChannelGroups
+    -- so every monitored event has a toggle and the two can never drift
+    local channelGroups = (CSPAM.Events and CSPAM.Events.ChannelGroups) or {}
+    local airspaceRows = math.ceil(#channelGroups / 2)
+    local cardAirspace = CreateElvCard(p4, "MONITORED AIRSPACE (CHAT CHANNELS)",
+        "Select which chat channels the C-SPAM radar actively monitors and filters.", 684, 52 + airspaceRows * 46)
     cardAirspace:SetPoint("TOPLEFT", 10, -155)
 
-    local cbTrade = CreateElvCheckBox(cardAirspace, "Public Channels (Trade, Services, General, LFG)", 
-        "Monitors public realm channels where boosting and political spam are most rampant.", function(c) 
-        CSPAM.db.channels.CHAT_MSG_CHANNEL = c 
-    end, 280)
-    cbTrade:SetPoint("TOPLEFT", 12, -44)
-    SetElvTooltip(cbTrade, "Public Channels", "Applies intercept rules to Trade, Services, General, LocalDefense, and LookingForGroup channels.")
-
-    local cbClub = CreateElvCheckBox(cardAirspace, "Communities & Club Channels", 
-        "Monitors WoW Community and custom player channels.", function(c) 
-        CSPAM.db.channels.CHAT_MSG_COMMUNITIES_CHANNEL = c 
-    end, 280)
-    cbClub:SetPoint("TOPLEFT", 12, -90)
-    SetElvTooltip(cbClub, "Communities & Clubs", "Applies intercept rules to Blizzard Community channels.")
-
-    local cbSay = CreateElvCheckBox(cardAirspace, "Local Say & Yell", 
-        "Monitors local open-world chat (/say and /yell).", function(c)
-        CSPAM.db.channels.CHAT_MSG_SAY = c
-        CSPAM.db.channels.CHAT_MSG_YELL = c
-    end, 280)
-    cbSay:SetPoint("TOPLEFT", 355, -44)
-    SetElvTooltip(cbSay, "Local Say & Yell", "Monitors open-world spatial chat in cities and zones.")
-
-    local cbWhisper = CreateElvCheckBox(cardAirspace, "Direct Whispers", 
-        "Monitors direct private whispers from strangers (Allies still bypass if IFF is enabled).", function(c) 
-        CSPAM.db.channels.CHAT_MSG_WHISPER = c 
-    end, 280)
-    cbWhisper:SetPoint("TOPLEFT", 355, -90)
-    SetElvTooltip(cbWhisper, "Direct Whispers", "Monitors 1-on-1 private whispers sent to you by other players.")
-
-    p4.cbTrade = cbTrade
-    p4.cbClub = cbClub
-    p4.cbSay = cbSay
-    p4.cbWhisper = cbWhisper
+    p4.channelChecks = {}
+    for i, group in ipairs(channelGroups) do
+        local col = (i - 1) % 2
+        local rowIdx = math.floor((i - 1) / 2)
+        local key = group.key
+        local cb = CreateElvCheckBox(cardAirspace, group.label, group.sub, function(c)
+            CSPAM.db.channelGroups[key] = c
+        end, 280)
+        cb:SetPoint("TOPLEFT", 12 + col * 343, -44 - rowIdx * 46)
+        SetElvTooltip(cb, group.label, group.tooltip)
+        p4.channelChecks[key] = cb
+    end
 
     -- Card 4: Evasion Decoders & Interface (Width 684, textWidth 610)
     local cardEvasion = CreateElvCard(p4, "EVASION DECODING & INTERFACE RADAR", 
         "Advanced heuristics that decode bypass tricks, plus Minimap HUD controls.", 684, 150)
-    cardEvasion:SetPoint("TOPLEFT", 10, -308)
+    cardEvasion:SetPoint("TOPLEFT", cardAirspace, "BOTTOMLEFT", 0, -8)
 
     local cbLeet = CreateElvCheckBox(cardEvasion, "Decode Camouflage, Leetspeak & Homoglyphs", 
         "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c)
@@ -968,10 +950,11 @@ function UI:Refresh()
             if p4.cbFriends then p4.cbFriends:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.friends == true) end
             if p4.cbGuild then p4.cbGuild:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.guild == true) end
             if p4.cbParty then p4.cbParty:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.party == true) end
-            if p4.cbTrade then p4.cbTrade:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_CHANNEL ~= false) end
-            if p4.cbClub then p4.cbClub:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_COMMUNITIES_CHANNEL ~= false) end
-            if p4.cbSay then p4.cbSay:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_SAY ~= false) end
-            if p4.cbWhisper then p4.cbWhisper:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_WHISPER == true) end
+            if p4.channelChecks and CSPAM.db.channelGroups then
+                for key, cb in pairs(p4.channelChecks) do
+                    cb:SetChecked(CSPAM.db.channelGroups[key] == true)
+                end
+            end
             if p4.cbLeet then p4.cbLeet:SetChecked(CSPAM.db.options and CSPAM.db.options.checkLeet ~= false) end
             if p4.cbRepeat then p4.cbRepeat:SetChecked(CSPAM.db.options and CSPAM.db.options.collapseRepeats ~= false) end
             if p4.cbMinimap then p4.cbMinimap:SetChecked(CSPAM.db.options and CSPAM.db.options.showMinimap ~= false) end

@@ -23,15 +23,7 @@ local defaultDB = {
         raid = true,
         characters = {},
     },
-    channels = {
-        CHAT_MSG_CHANNEL = true,
-        CHAT_MSG_COMMUNITIES_CHANNEL = true,
-        CHAT_MSG_SAY = true,
-        CHAT_MSG_YELL = true,
-        CHAT_MSG_WHISPER = false,
-        CHAT_MSG_EMOTE = true,
-        CHAT_MSG_TEXT_EMOTE = true,
-    },
+    channelGroups = {},
     options = {
         checkLeet = true,
         checkPunctuation = true,
@@ -146,6 +138,22 @@ local function InitializeAddon()
 
     if CSPAM.db.stats.startTime == 0 then
         CSPAM.db.stats.startTime = time()
+    end
+
+    -- Channel toggles are stored per group (see Events.ChannelGroups).
+    -- Migrate legacy per-event keys, then seed defaults for missing groups.
+    if CSPAM.Events and CSPAM.Events.ChannelGroups then
+        local legacy = CSPAM.db.channels
+        for _, group in ipairs(CSPAM.Events.ChannelGroups) do
+            if CSPAM.db.channelGroups[group.key] == nil then
+                if legacy and legacy[group.events[1]] ~= nil then
+                    CSPAM.db.channelGroups[group.key] = (legacy[group.events[1]] ~= false)
+                else
+                    CSPAM.db.channelGroups[group.key] = (group.default ~= false)
+                end
+            end
+        end
+        CSPAM.db.channels = nil
     end
 
     -- Normalize per-character whitelist keys to lowercase short names
