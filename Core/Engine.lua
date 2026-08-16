@@ -3,6 +3,11 @@ local addonName, CSPAM = ...
 CSPAM.Engine = {}
 local E = CSPAM.Engine
 
+-- Escape Lua pattern magic characters so text can be matched literally
+local function EscapePattern(str)
+    return (str:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+end
+
 -- Compiled Index Tables
 local exactWords = {}
 local containsList = {}
@@ -57,7 +62,7 @@ function E:RebuildIndex()
         if modeUpper == "EXACT" then
             exactWords[cleanText] = { text = text, mode = modeUpper, category = category, pack = packName }
         elseif modeUpper == "CONTAINS" then
-            local escaped = cleanText:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+            local escaped = EscapePattern(cleanText)
             table.insert(containsList, {
                 raw = text,
                 pattern = escaped,
@@ -67,7 +72,7 @@ function E:RebuildIndex()
         elseif modeUpper == "PHRASE" then
             local words = {}
             for w in cleanText:gmatch("%S+") do
-                table.insert(words, (w:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")))
+                table.insert(words, EscapePattern(w))
             end
             if #words > 0 then
                 local pattern = table.concat(words, "%s+")
@@ -177,19 +182,58 @@ function E:IsSenderWhitelisted(senderName, senderGUID)
     return false
 end
 
+-- Case- and leet-tolerant character classes for masking: "gold" becomes
+-- "[gG69][oO0][lL|][dD]" so the censor can locate words the normalizer
+-- matched regardless of case or leet substitutions in the original text.
+local leetAliases = nil
+local function GetLeetAliases()
+    if not leetAliases then
+        leetAliases = {}
+        local map = CSPAM.Normalizer and CSPAM.Normalizer.LEET_MAP
+        if map then
+            for sym, letter in pairs(map) do
+                local entry = EscapePattern(sym)
+                if sym:match("^%a$") then
+                    entry = entry .. sym:upper()
+                end
+                leetAliases[letter] = (leetAliases[letter] or "") .. entry
+            end
+        end
+    end
+    return leetAliases
+end
+
+local function FuzzyWordPattern(word)
+    local aliases = GetLeetAliases()
+    return (EscapePattern(word:lower()):gsub("%a", function(c)
+        return "[" .. c .. c:upper() .. (aliases[c] or "") .. "]"
+    end))
+end
+
 -- Electronic Jamming (Mask target words with asterisks)
 function E:MaskMessage(rawMessage, matchedText, norm)
     if not matchedText or matchedText == "" then return rawMessage end
-    
+
     local extracted, links = norm.extracted, norm.links
-    local escapedMatch = matchedText:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-    
-    local masked, _ = extracted:gsub("(?i)" .. escapedMatch, function(found)
+
+    -- Multi-word matches (PHRASE rules) tolerate any whitespace between words
+    local words = {}
+    for w in matchedText:gmatch("%S+") do
+        words[#words + 1] = FuzzyWordPattern(w)
+    end
+    if #words == 0 then return rawMessage end
+
+    local masked, count = extracted:gsub(table.concat(words, "%s+"), function(found)
         return string.rep("*", #found)
     end)
 
-    if masked == extracted then
-        masked = extracted:gsub(escapedMatch, string.rep("*", #matchedText))
+    if count == 0 then
+        -- The rule matched a normalized variant (collapsed repeats, homoglyphs,
+        -- REGEX pattern text) that cannot be located in the original message.
+        -- Censor the whole payload rather than let confirmed spam through
+        -- unmasked; hyperlinks are dropped along with it.
+        masked = string.rep("*", 12)
+        links = nil
     end
 
     return CSPAM.Normalizer.RestoreLinks(masked, links)
