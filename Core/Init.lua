@@ -1,6 +1,5 @@
 local addonName, CSPAM = ...
 _G.CSPAM = CSPAM
-_G.C_SPAM = CSPAM
 
 CSPAM.Version = "1.5.0"
 local L = CSPAM.L
@@ -15,14 +14,12 @@ local defaultDB = {
     whitelist = {
         friends = true,
         guild = true,
-        party = true,
-        raid = true,
+        party = true, -- covers both party and raid allies
         characters = {},
     },
     channelGroups = {},
     options = {
         checkLeet = true,
-        checkPunctuation = true,
         collapseRepeats = true,
         logFiltered = true,
         maxLogEntries = 100,
@@ -33,7 +30,6 @@ local defaultDB = {
     stats = {
         totalScanned = 0,
         totalFiltered = 0,
-        startTime = 0,
     }
 }
 
@@ -132,9 +128,10 @@ local function InitializeAddon()
     _G.CSPAM_DB = CopyDefaults(defaultDB, _G.CSPAM_DB)
     CSPAM.db = _G.CSPAM_DB
 
-    if CSPAM.db.stats.startTime == 0 then
-        CSPAM.db.stats.startTime = time()
-    end
+    -- Drop legacy keys that no code reads from existing SavedVariables
+    CSPAM.db.options.checkPunctuation = nil
+    CSPAM.db.whitelist.raid = nil
+    CSPAM.db.stats.startTime = nil
 
     -- Channel toggles are stored per group (see Events.ChannelGroups).
     -- Migrate legacy per-event keys, then seed defaults for missing groups.
@@ -194,7 +191,6 @@ end
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:RegisterEvent("PLAYER_LOGIN")
-initFrame:RegisterEvent("PLAYER_LOGOUT")
 
 initFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and (arg1 == addonName or arg1 == "CSPAM" or arg1 == "C-SPAM") then
@@ -213,10 +209,6 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         end
         if CSPAM.Minimap and CSPAM.Minimap.Refresh then
             CSPAM.Minimap:Refresh()
-        end
-    elseif event == "PLAYER_LOGOUT" then
-        if CSPAM.db then
-            _G.CSPAM_DB = CSPAM.db
         end
     end
 end)
