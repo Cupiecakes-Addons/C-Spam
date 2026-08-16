@@ -3,14 +3,13 @@ local addonName, CSPAM = ...
 CSPAM.Normalizer = {}
 local N = CSPAM.Normalizer
 
--- Leetspeak & Symbol translation table (1-byte ASCII replacements)
+-- Leetspeak & Symbol translation table (single-byte replacements applied per byte)
 local LEET_MAP = {
     ["@"] = "a",
     ["4"] = "a",
     ["8"] = "b",
     ["("] = "c",
     ["3"] = "e",
-    ["€"] = "e",
     ["6"] = "g",
     ["9"] = "g",
     ["!"] = "i",
@@ -24,8 +23,11 @@ local LEET_MAP = {
     ["v"] = "u",
     ["2"] = "z",
 }
+N.LEET_MAP = LEET_MAP -- shared with Engine:MaskMessage's fuzzy character classes
 
--- Common Cyrillic / Multibyte Homoglyphs mapped to ASCII Latin
+-- Common Cyrillic / Multibyte Homoglyphs mapped to ASCII Latin.
+-- Every key is a 2-byte UTF-8 sequence starting with \208 or \209, which lets
+-- ApplyLeetTranslation replace all of them in one gsub pass.
 local HOMOGLYPH_MAP = {
     ["\208\176"] = "a", -- Cyrillic Small Letter A
     ["\208\144"] = "a", -- Cyrillic Capital Letter A
@@ -44,6 +46,10 @@ local HOMOGLYPH_MAP = {
     ["\209\150"] = "i", -- Cyrillic Small Letter Byelorussian-Ukrainian I
     ["\208\134"] = "i", -- Cyrillic Capital Letter Byelorussian-Ukrainian I
 }
+
+-- Multibyte sequences that need a length-specific replacement of their own
+-- (a per-byte gsub can never match them)
+local EURO_SIGN = "\226\130\172" -- €
 
 -- Safely lowercase UTF-8 strings
 function N.ToLower(str)
@@ -84,71 +90,91 @@ function N.RestoreLinks(text, links)
     end)
 end
 
--- Apply Leetspeak & Homoglyph translation (Safe O(N) table-driven gsub)
+-- Apply Leetspeak & Homoglyph translation
 function N.ApplyLeetTranslation(text)
     if not text then return "" end
 
-    -- 1. Replace Cyrillic / Multibyte homoglyphs
-    for glyph, replacement in pairs(HOMOGLYPH_MAP) do
-        text = text:gsub(glyph, replacement)
+    -- 1. Multibyte homoglyphs: single pass, skipped entirely for pure-ASCII text
+    if text:find("[\208\209]") then
+        text = text:gsub("[\208\209][\128-\191]", HOMOGLYPH_MAP)
+    end
+    if text:find(EURO_SIGN, 1, true) then
+        text = text:gsub(EURO_SIGN, "e")
     end
 
-    -- 2. Fast single-pass Leet character translation (bypasses Lua pattern capture index bugs)
-    text = text:gsub(".", LEET_MAP)
-
-    return text
+    -- 2. Single-byte Leet character translation
+    return (text:gsub(".", LEET_MAP))
 end
 
 -- Collapse consecutive identical characters (e.g. "traaaash" -> "trash", "trumpppp" -> "trump")
 function N.CollapseRepeats(text)
-    return text:gsub("(%a)%1%1+", "%1")
+    return (text:gsub("(%a)%1%1+", "%1"))
+end
+
+-- Add every whitespace-separated word of `text` to the token set
+local function AddTokens(text, set)
+    for word in text:gmatch("%S+") do
+        set[word] = true
+    end
+end
+
+-- Join runs of 3+ consecutive single-character tokens into whole words so
+-- spaced-out evasion ("t r u m p", "t.r.u.m.p" after cleaning) is tokenized too
+local function AddJoinedRuns(text, set)
+    local buf, n = {}, 0
+    local function flush()
+        if n >= 3 then
+            local joined = table.concat(buf, "", 1, n)
+            set[joined] = true
+            set[N.CollapseRepeats(joined)] = true
+        end
+        n = 0
+    end
+    for word in text:gmatch("%S+") do
+        if #word == 1 then
+            n = n + 1
+            buf[n] = word
+        else
+            flush()
+        end
+    end
+    flush()
 end
 
 -- Full normalization pipeline
 function N.NormalizeMessage(rawMessage, options)
     options = options or (CSPAM.db and CSPAM.db.options) or {}
-    
+
     local extracted, links = N.ExtractLinks(rawMessage)
-    local lower = N.ToLower(extracted)
 
-    -- Base sanitized text: replace punctuation with space, but keep characters
-    local cleaned = lower:gsub("[%p%c]", " ")
-    cleaned = cleaned:gsub("%s+", " "):trim()
+    -- Links only need to survive in `extracted` (for masking/restore). Strip the
+    -- placeholders from everything the matcher sees so they can never trip rules.
+    local matchSource = extracted:gsub("___CSPAMLINK%d+___", " ")
+    local lower = N.ToLower(matchSource)
 
-    -- Generate token map for O(1) exact word lookup
+    -- Base sanitized text: replace punctuation/control chars with spaces
+    local cleaned = lower:gsub("[%p%c]", " "):gsub("%s+", " "):trim()
+
+    -- Token map for O(1) exact word lookup
     local tokens = {}
-    for word in cleaned:gmatch("%S+") do
-        if not word:match("^___cspamlink%d+___$") then
-            tokens[word] = true
-        end
-    end
+    AddTokens(cleaned, tokens)
 
     -- Leet / Homoglyph normalized variant
     local leetClean = nil
     local leetTokens = nil
-    local collapsedClean = nil
 
     if options.checkLeet ~= false then
-        local leetStr = N.ApplyLeetTranslation(lower)
-        leetClean = leetStr:gsub("[%p%c]", " "):gsub("%s+", " "):trim()
+        leetClean = N.ApplyLeetTranslation(lower):gsub("[%p%c]", " "):gsub("%s+", " "):trim()
         leetTokens = {}
-        for word in leetClean:gmatch("%S+") do
-            if not word:match("^___cspamlink%d+___$") then
-                leetTokens[word] = true
-            end
-        end
+        AddTokens(leetClean, leetTokens)
     end
 
     if options.collapseRepeats ~= false then
-        collapsedClean = N.CollapseRepeats(cleaned)
+        AddTokens(N.CollapseRepeats(cleaned), tokens)
+        AddJoinedRuns(cleaned, tokens)
         if leetClean then
-            local collapsedLeet = N.CollapseRepeats(leetClean)
-            for word in collapsedLeet:gmatch("%S+") do
-                if not word:match("^___cspamlink%d+___$") then
-                    if leetTokens then leetTokens[word] = true end
-                    tokens[word] = true
-                end
-            end
+            AddTokens(N.CollapseRepeats(leetClean), leetTokens)
+            AddJoinedRuns(leetClean, leetTokens)
         end
     end
 
@@ -161,6 +187,5 @@ function N.NormalizeMessage(rawMessage, options)
         tokens = tokens,
         leetClean = leetClean,
         leetTokens = leetTokens,
-        collapsedClean = collapsedClean,
     }
 end
