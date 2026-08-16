@@ -16,28 +16,33 @@ local tabButtons = {}
 
 local SOLID_TEX = "Interface\\Buttons\\WHITE8X8"
 
-local C_BG_DARK    = { 0.05, 0.05, 0.06, 0.96 }
-local C_BG_PANEL   = { 0.09, 0.09, 0.11, 0.92 }
-local C_BG_ROW_ALT = { 0.07, 0.07, 0.09, 0.60 }
+-- Dark & Semi-Transparent Palette (Directly matching ElvUI's Transparent Backdrop)
+local C_BG_DARK    = { 0.05, 0.05, 0.06, 0.78 }
+local C_BG_PANEL   = { 0.07, 0.07, 0.08, 0.70 }
+local C_BG_ROW_ALT = { 0.06, 0.06, 0.08, 0.50 }
 local C_BORDER     = { 0.00, 0.00, 0.00, 1.00 }
-local C_INNER_BORD = { 0.18, 0.18, 0.22, 1.00 }
+local C_INNER_BORD = { 0.18, 0.18, 0.22, 0.85 }
 local C_ACCENT     = { 0.00, 0.70, 1.00, 1.00 } -- ElvUI Cyan
 local C_ACCENT_RED = { 1.00, 0.23, 0.19, 1.00 } -- C-SPAM Red
-local C_BTN_NORMAL = { 0.14, 0.14, 0.17, 1.00 }
-local C_BTN_HOVER  = { 0.20, 0.20, 0.25, 1.00 }
+local C_BTN_NORMAL = { 0.12, 0.12, 0.15, 0.85 }
+local C_BTN_HOVER  = { 0.18, 0.18, 0.22, 0.95 }
 
--- Apply ElvUI 1-pixel flat backdrop with outer border
-local function CreateElvBackdrop(frame, bgCol, borderCol)
-    frame:SetBackdrop({
-        bgFile = SOLID_TEX,
-        edgeFile = SOLID_TEX,
-        tile = false, tileSize = 0, edgeSize = 1,
-        insets = { left = 1, right = 1, top = 1, bottom = 1 }
-    })
-    local bg = bgCol or C_BG_PANEL
-    local bc = borderCol or C_INNER_BORD
-    frame:SetBackdropColor(bg[1], bg[2], bg[3], bg[4] or 1)
-    frame:SetBackdropBorderColor(bc[1], bc[2], bc[3], bc[4] or 1)
+-- Apply ElvUI 1-pixel flat backdrop with outer border & transparency support
+local function CreateElvBackdrop(frame, bgCol, borderCol, isTransparent)
+    if frame.SetTemplate then
+        frame:SetTemplate(isTransparent and "Transparent" or "Default")
+    else
+        frame:SetBackdrop({
+            bgFile = SOLID_TEX,
+            edgeFile = SOLID_TEX,
+            tile = false, tileSize = 0, edgeSize = 1,
+            insets = { left = 1, right = 1, top = 1, bottom = 1 }
+        })
+        local bg = bgCol or (isTransparent and C_BG_DARK or C_BG_PANEL)
+        local bc = borderCol or C_INNER_BORD
+        frame:SetBackdropColor(bg[1], bg[2], bg[3], bg[4] or 0.8)
+        frame:SetBackdropBorderColor(bc[1], bc[2], bc[3], bc[4] or 1)
+    end
 end
 
 -- Attach Rich ElvUI Hover Tooltip
@@ -65,7 +70,7 @@ end
 local function CreateElvButton(parent, text, width, height, isRed)
     local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
     btn:SetSize(width or 100, height or 22)
-    CreateElvBackdrop(btn, C_BTN_NORMAL, C_INNER_BORD)
+    CreateElvBackdrop(btn, C_BTN_NORMAL, C_INNER_BORD, false)
 
     btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     btn.text:SetPoint("CENTER", 0, 0)
@@ -73,7 +78,7 @@ local function CreateElvButton(parent, text, width, height, isRed)
 
     btn:SetScript("OnEnter", function(self)
         if not self:IsEnabled() then return end
-        local hoverCol = isRed and { 0.4, 0.1, 0.1, 1 } or C_BTN_HOVER
+        local hoverCol = isRed and { 0.4, 0.1, 0.1, 0.9 } or C_BTN_HOVER
         local borderCol = isRed and C_ACCENT_RED or C_ACCENT
         self:SetBackdropColor(hoverCol[1], hoverCol[2], hoverCol[3], hoverCol[4])
         self:SetBackdropBorderColor(borderCol[1], borderCol[2], borderCol[3], borderCol[4])
@@ -95,7 +100,7 @@ end
 local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
     local check = CreateFrame("Button", nil, parent, "BackdropTemplate")
     check:SetSize(16, 16)
-    CreateElvBackdrop(check, C_BTN_NORMAL, C_INNER_BORD)
+    CreateElvBackdrop(check, C_BTN_NORMAL, C_INNER_BORD, false)
 
     local inner = check:CreateTexture(nil, "OVERLAY")
     inner:SetTexture(SOLID_TEX)
@@ -158,7 +163,7 @@ end
 local function CreateElvRadio(parent, labelText, subText, onClick, textWidth)
     local radio = CreateFrame("Button", nil, parent, "BackdropTemplate")
     radio:SetSize(14, 14)
-    CreateElvBackdrop(radio, C_BTN_NORMAL, C_INNER_BORD)
+    CreateElvBackdrop(radio, C_BTN_NORMAL, C_INNER_BORD, false)
 
     local inner = radio:CreateTexture(nil, "OVERLAY")
     inner:SetTexture(SOLID_TEX)
@@ -210,7 +215,7 @@ end
 local function CreateElvEditBox(parent, width, height)
     local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     eb:SetSize(width or 180, height or 22)
-    CreateElvBackdrop(eb, { 0.06, 0.06, 0.08, 1 }, C_INNER_BORD)
+    CreateElvBackdrop(eb, { 0.05, 0.05, 0.07, 0.75 }, C_INNER_BORD, false)
     eb:SetFontObject("GameFontHighlightSmall")
     eb:SetTextInsets(6, 6, 2, 2)
     eb:SetAutoFocus(false)
@@ -234,7 +239,7 @@ end
 local function CreateElvCard(parent, titleText, descText, width, height)
     local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     card:SetSize(width, height)
-    CreateElvBackdrop(card, { 0.07, 0.07, 0.09, 0.90 }, C_INNER_BORD)
+    CreateElvBackdrop(card, { 0.06, 0.06, 0.08, 0.65 }, C_INNER_BORD, true)
 
     if titleText then
         local header = card:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -273,7 +278,7 @@ function UI:Init()
     mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
     mainFrame:SetFrameStrata("HIGH")
     mainFrame:SetClampedToScreen(true)
-    CreateElvBackdrop(mainFrame, C_BG_DARK, { 0, 0, 0, 1 })
+    CreateElvBackdrop(mainFrame, C_BG_DARK, { 0, 0, 0, 1 }, true)
     tinsert(UISpecialFrames, "CSPAMMainFrame")
 
     -- Top Header Bar
@@ -281,7 +286,7 @@ function UI:Init()
     headerBar:SetPoint("TOPLEFT", 1, -1)
     headerBar:SetPoint("TOPRIGHT", -1, -1)
     headerBar:SetHeight(28)
-    CreateElvBackdrop(headerBar, { 0.10, 0.10, 0.13, 1 }, C_INNER_BORD)
+    CreateElvBackdrop(headerBar, { 0.08, 0.08, 0.10, 0.80 }, C_INNER_BORD, true)
 
     local iconLogo = headerBar:CreateTexture(nil, "OVERLAY")
     iconLogo:SetSize(20, 20)
@@ -299,7 +304,7 @@ function UI:Init()
     local closeBtn = CreateFrame("Button", nil, headerBar, "BackdropTemplate")
     closeBtn:SetSize(20, 20)
     closeBtn:SetPoint("RIGHT", -4, 0)
-    CreateElvBackdrop(closeBtn, C_BTN_NORMAL, C_INNER_BORD)
+    CreateElvBackdrop(closeBtn, C_BTN_NORMAL, C_INNER_BORD, false)
 
     local closeText = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     closeText:SetPoint("CENTER", 0, 0)
@@ -311,7 +316,7 @@ function UI:Init()
         self:SetBackdropBorderColor(1, 0.2, 0.2, 1)
     end)
     closeBtn:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(C_BTN_NORMAL[1], C_BTN_NORMAL[2], C_BTN_NORMAL[3], 1)
+        self:SetBackdropColor(C_BTN_NORMAL[1], C_BTN_NORMAL[2], C_BTN_NORMAL[3], C_BTN_NORMAL[4])
         self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
     end)
 
@@ -346,14 +351,14 @@ function UI:Init()
             if i == tabIndex then
                 panel:Show()
                 if tabButtons[i] then
-                    tabButtons[i]:SetBackdropColor(C_BG_PANEL[1], C_BG_PANEL[2], C_BG_PANEL[3], 1)
+                    tabButtons[i]:SetBackdropColor(C_BG_PANEL[1], C_BG_PANEL[2], C_BG_PANEL[3], 0.90)
                     tabButtons[i]:SetBackdropBorderColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
                     tabButtons[i].text:SetTextColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
                 end
             else
                 panel:Hide()
                 if tabButtons[i] then
-                    tabButtons[i]:SetBackdropColor(C_BTN_NORMAL[1], C_BTN_NORMAL[2], C_BTN_NORMAL[3], 1)
+                    tabButtons[i]:SetBackdropColor(C_BTN_NORMAL[1], C_BTN_NORMAL[2], C_BTN_NORMAL[3], 0.65)
                     tabButtons[i]:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
                     tabButtons[i].text:SetTextColor(0.7, 0.7, 0.7, 1)
                 end
@@ -367,7 +372,7 @@ function UI:Init()
         local tab = CreateFrame("Button", nil, mainFrame, "BackdropTemplate")
         tab:SetSize(136, 24)
         tab:SetPoint("TOPLEFT", tabX, -33)
-        CreateElvBackdrop(tab, C_BTN_NORMAL, C_INNER_BORD)
+        CreateElvBackdrop(tab, C_BTN_NORMAL, C_INNER_BORD, false)
 
         tab.text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         tab.text:SetPoint("CENTER", 0, 0)
@@ -393,7 +398,7 @@ function UI:Init()
         local panel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
         panel:SetPoint("TOPLEFT", 8, -60)
         panel:SetPoint("BOTTOMRIGHT", -8, 8)
-        CreateElvBackdrop(panel, C_BG_PANEL, C_INNER_BORD)
+        CreateElvBackdrop(panel, C_BG_PANEL, C_INNER_BORD, true)
         panel:Hide()
         contentPanels[i] = panel
     end
@@ -483,7 +488,7 @@ function UI:Init()
     thFrame:SetPoint("TOPLEFT", 10, -42)
     thFrame:SetPoint("TOPRIGHT", -10, -42)
     thFrame:SetHeight(20)
-    CreateElvBackdrop(thFrame, { 0.12, 0.12, 0.16, 1 }, C_INNER_BORD)
+    CreateElvBackdrop(thFrame, { 0.10, 0.10, 0.13, 0.80 }, C_INNER_BORD, true)
 
     local th1 = thFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     th1:SetPoint("LEFT", 10, 0)
@@ -571,7 +576,7 @@ function UI:Init()
     logHeader:SetPoint("TOPLEFT", 10, -10)
     logHeader:SetPoint("TOPRIGHT", -10, -10)
     logHeader:SetHeight(28)
-    CreateElvBackdrop(logHeader, { 0.12, 0.12, 0.16, 1 }, C_INNER_BORD)
+    CreateElvBackdrop(logHeader, { 0.10, 0.10, 0.13, 0.80 }, C_INNER_BORD, true)
 
     local logTitle = logHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     logTitle:SetPoint("LEFT", 10, 0)
@@ -762,7 +767,7 @@ function UI:Init()
     ieEditBox:SetFontObject("GameFontHighlightSmall")
     ieEditBox:SetWidth(650)
     ieEditBox:SetTextInsets(6, 6, 6, 6)
-    CreateElvBackdrop(ieEditBox, { 0.06, 0.06, 0.08, 1 }, C_INNER_BORD)
+    CreateElvBackdrop(ieEditBox, { 0.05, 0.05, 0.07, 0.75 }, C_INNER_BORD, false)
     ieScroll:SetScrollChild(ieEditBox)
     p5.ieEditBox = ieEditBox
 
@@ -885,8 +890,8 @@ function UI:Refresh()
                         parent.rows[rowIndex] = row
                     end
 
-                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.4 }
-                    CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.5 })
+                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
+                    CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
 
                     row:SetPoint("TOPLEFT", 0, -y)
                     row.text:SetText(item.text)
@@ -947,8 +952,8 @@ function UI:Refresh()
                     parent.rows[rowIndex] = row
                 end
 
-                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.4 }
-                CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.5 })
+                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
+                CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
 
                 row:SetPoint("TOPLEFT", 0, -y)
                 local timeStr = date("%H:%M:%S", entry.timestamp or time())
