@@ -1,11 +1,9 @@
+# Libraries are vendored in Libs/ (no externals) so a bare checkout is a
+# complete, drop-in addon.
 package-as: C-Spam
-
-externals:
-    Libs/LibStub: https://repos.wowace.com/wow/libstub/trunk
-    Libs/CallbackHandler-1.0: https://repos.wowace.com/wow/callbackhandler/trunk/CallbackHandler-1.0
-    Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1
-    Libs/LibDBIcon-1.0: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
 
 ignore:
     - .github
     - tests
+    - scripts
+    - dist

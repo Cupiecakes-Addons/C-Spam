@@ -8,9 +8,7 @@
 ## IconTexture: Interface\AddOns\C-Spam\Media\icon.tga
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
 
-# Libraries are bundled by the release packager (.pkgmeta externals).
-# When running from a bare checkout these files are absent and WoW skips
-# them; the minimap button then uses its built-in fallback.
+# Bundled libraries (minimap button / ElvUI & broker-display integration)
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua

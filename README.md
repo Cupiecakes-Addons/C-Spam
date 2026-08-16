@@ -54,11 +54,11 @@
 
 **From a packaged release (recommended):**
 1. Grab the latest zip from the [GitHub Releases](https://github.com/Cupiecakes-Addons/C-Spam/releases) page (WowUp can also install from the repo URL once a release exists).
-2. Extract it into `World of Warcraft\_retail_\Interface\AddOns\` — you should end up with `Interface\AddOns\C-Spam\C-Spam.toc`. Releases bundle LibStub / LibDataBroker / LibDBIcon for ElvUI & minimap-bar integration.
+2. Extract it straight into `World of Warcraft\_retail_\Interface\AddOns\` — you end up with `Interface\AddOns\C-Spam\C-Spam.toc`. LibStub / LibDataBroker / LibDBIcon are bundled for ElvUI & minimap-bar integration.
 
 **From source (git checkout):**
-1. Clone or copy this repository into `Interface\AddOns\` and make sure the folder is named exactly `C-Spam` — WoW only loads `<Folder>\<Folder>.toc`.
-2. Without the bundled libraries the minimap button uses its built-in fallback (it still docks with ElvUI when another addon provides LibDBIcon).
+1. Clone or copy this repository into `Interface\AddOns\` and make sure the folder is named exactly `C-Spam` — WoW only loads `<Folder>\<Folder>.toc`. The checkout is a complete addon (libraries are vendored in `Libs/`).
+2. To build the release-style zip locally, run `scripts/package.sh` and drop `dist/C-Spam.zip` contents into your AddOns folder.
 
 Then launch WoW (or type `/reload`) and type `/cs` or click the Minimap Turret icon to configure.
 
