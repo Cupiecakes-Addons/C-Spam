@@ -1,0 +1,9 @@
+# Libraries are vendored in Libs/ (no externals) so a bare checkout is a
+# complete, drop-in addon.
+package-as: C-Spam
+
+ignore:
+    - .github
+    - tests
+    - scripts
+    - dist

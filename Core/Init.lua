@@ -1,8 +1,7 @@
 local addonName, CSPAM = ...
 _G.CSPAM = CSPAM
-_G.C_SPAM = CSPAM
 
-CSPAM.Version = "1.5.0"
+CSPAM.Version = "1.6.2"
 local L = CSPAM.L
 
 -- Default Database Schema
@@ -10,31 +9,17 @@ local defaultDB = {
     version = 1,
     enabled = true,
     action = "HIDE", -- "HIDE" (Kinetic Intercept), "MASK" (Jamming), "LOG" (Surveillance)
-    packs = {
-        politics = true,
-        boosting = false,
-        toxicity = true,
-    },
+    packs = {},
     customWords = {},
     whitelist = {
         friends = true,
         guild = true,
-        party = true,
-        raid = true,
+        party = true, -- covers both party and raid allies
         characters = {},
     },
-    channels = {
-        CHAT_MSG_CHANNEL = true,
-        CHAT_MSG_COMMUNITIES_CHANNEL = true,
-        CHAT_MSG_SAY = true,
-        CHAT_MSG_YELL = true,
-        CHAT_MSG_WHISPER = false,
-        CHAT_MSG_EMOTE = true,
-        CHAT_MSG_TEXT_EMOTE = true,
-    },
+    channelGroups = {},
     options = {
         checkLeet = true,
-        checkPunctuation = true,
         collapseRepeats = true,
         logFiltered = true,
         maxLogEntries = 100,
@@ -45,7 +30,6 @@ local defaultDB = {
     stats = {
         totalScanned = 0,
         totalFiltered = 0,
-        startTime = 0,
     }
 }
 
@@ -89,6 +73,52 @@ local function ClearActiveChatEditBox(editBox)
 end
 CSPAM.ClearActiveChatEditBox = ClearActiveChatEditBox
 
+-- Master ARM/DISARM used by the slash command, console button, and minimap
+function CSPAM:ToggleEnabled(silent)
+    CSPAM.db.enabled = not CSPAM.db.enabled
+    if not silent then
+        local statusMsg = CSPAM.db.enabled and L["SLASH_TOGGLE_ON"] or L["SLASH_TOGGLE_OFF"]
+        DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
+    end
+    if CSPAM.UI and CSPAM.UI.Refresh then
+        CSPAM.UI:Refresh()
+    end
+    if CSPAM.Minimap and CSPAM.Minimap.Refresh then
+        CSPAM.Minimap:Refresh()
+    end
+end
+
+-- Register a custom threat signature. Mode defaults to PHRASE for multi-word
+-- input (a single EXACT token can never contain whitespace) and EXACT
+-- otherwise. Returns true on success, or false plus "empty"/"exists".
+function CSPAM:AddCustomRule(text, mode)
+    text = text and text:trim() or ""
+    if text == "" then return false, "empty" end
+
+    if not mode then
+        mode = text:find("%s") and "PHRASE" or "EXACT"
+    end
+    mode = mode:upper()
+
+    for _, item in ipairs(CSPAM.db.customWords) do
+        if item.text:lower() == text:lower() and (item.mode or "EXACT"):upper() == mode then
+            return false, "exists"
+        end
+    end
+
+    table.insert(CSPAM.db.customWords, {
+        text = text,
+        mode = mode,
+        enabled = true,
+        category = "Custom",
+    })
+    CSPAM.Engine:RebuildIndex()
+    if CSPAM.UI and CSPAM.UI.Refresh then
+        CSPAM.UI:Refresh()
+    end
+    return true
+end
+
 local function InitializeAddon()
     if CSPAM.isInitialized then return end
 
@@ -98,8 +128,49 @@ local function InitializeAddon()
     _G.CSPAM_DB = CopyDefaults(defaultDB, _G.CSPAM_DB)
     CSPAM.db = _G.CSPAM_DB
 
-    if CSPAM.db.stats.startTime == 0 then
-        CSPAM.db.stats.startTime = time()
+    -- Drop legacy keys that no code reads from existing SavedVariables
+    CSPAM.db.options.checkPunctuation = nil
+    CSPAM.db.whitelist.raid = nil
+    CSPAM.db.stats.startTime = nil
+
+    -- Channel toggles are stored per group (see Events.ChannelGroups).
+    -- Migrate legacy per-event keys, then seed defaults for missing groups.
+    if CSPAM.Events and CSPAM.Events.ChannelGroups then
+        local legacy = CSPAM.db.channels
+        for _, group in ipairs(CSPAM.Events.ChannelGroups) do
+            if CSPAM.db.channelGroups[group.key] == nil then
+                if legacy and legacy[group.events[1]] ~= nil then
+                    CSPAM.db.channelGroups[group.key] = (legacy[group.events[1]] ~= false)
+                else
+                    CSPAM.db.channelGroups[group.key] = (group.default ~= false)
+                end
+            end
+        end
+        CSPAM.db.channels = nil
+    end
+
+    -- Seed pack toggles from the pack definitions so new packs added to
+    -- Data/DefaultPacks.lua get their default state automatically
+    if CSPAM.Packs then
+        for packKey, pack in pairs(CSPAM.Packs) do
+            if CSPAM.db.packs[packKey] == nil then
+                CSPAM.db.packs[packKey] = (pack.enabled ~= false)
+            end
+        end
+    end
+
+    -- Normalize per-character whitelist keys to lowercase short names
+    do
+        local characters = CSPAM.db.whitelist and CSPAM.db.whitelist.characters
+        if characters then
+            local normalized = {}
+            for name in pairs(characters) do
+                if type(name) == "string" then
+                    normalized[(name:match("^([^-]+)") or name):lower()] = true
+                end
+            end
+            CSPAM.db.whitelist.characters = normalized
+        end
     end
 
     if CSPAM.Engine and CSPAM.Engine.RebuildIndex then
@@ -108,10 +179,6 @@ local function InitializeAddon()
 
     if CSPAM.UI and CSPAM.UI.Init then
         CSPAM.UI:Init()
-    end
-
-    if CSPAM.Minimap and CSPAM.Minimap.Init then
-        CSPAM.Minimap:Init()
     end
 
     if CSPAM.Config and CSPAM.Config.Register then
@@ -124,7 +191,6 @@ end
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:RegisterEvent("PLAYER_LOGIN")
-initFrame:RegisterEvent("PLAYER_LOGOUT")
 
 initFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and (arg1 == addonName or arg1 == "CSPAM" or arg1 == "C-SPAM") then
@@ -135,12 +201,14 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         if CSPAM.Events and CSPAM.Events.RegisterFilters then
             CSPAM.Events:RegisterFilters()
         end
+        -- The minimap button initializes at PLAYER_LOGIN (not ADDON_LOADED)
+        -- so LibStub/LibDBIcon provided by addons that load after C-Spam
+        -- are visible when we probe for them
+        if CSPAM.Minimap and CSPAM.Minimap.Init then
+            CSPAM.Minimap:Init()
+        end
         if CSPAM.Minimap and CSPAM.Minimap.Refresh then
             CSPAM.Minimap:Refresh()
-        end
-    elseif event == "PLAYER_LOGOUT" then
-        if CSPAM.db then
-            _G.CSPAM_DB = CSPAM.db
         end
     end
 end)
@@ -161,42 +229,42 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
             CSPAM.UI:Toggle()
         end
     elseif cmd == "toggle" then
-        CSPAM.db.enabled = not CSPAM.db.enabled
-        local statusMsg = CSPAM.db.enabled and L["SLASH_TOGGLE_ON"] or L["SLASH_TOGGLE_OFF"]
-        DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
-        if CSPAM.UI and CSPAM.UI.Refresh then
-            CSPAM.UI:Refresh()
-        end
-        if CSPAM.Minimap and CSPAM.Minimap.Refresh then
-            CSPAM.Minimap:Refresh()
-        end
+        CSPAM:ToggleEnabled()
     elseif cmd == "add" then
         if arg and arg ~= "" then
-            local word = arg:lower():trim()
-            local exists = false
-            for _, item in ipairs(CSPAM.db.customWords) do
-                if item.text:lower() == word then
-                    exists = true
-                    break
-                end
-            end
-            if exists then
-                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_WORD_EXISTS"], word))
-            else
-                table.insert(CSPAM.db.customWords, {
-                    text = word,
-                    mode = "EXACT",
-                    enabled = true,
-                    category = "Custom"
-                })
-                CSPAM.Engine:RebuildIndex()
-                if CSPAM.UI and CSPAM.UI.Refresh then
-                    CSPAM.UI:Refresh()
-                end
+            local word = arg:trim()
+            local ok, reason = CSPAM:AddCustomRule(word)
+            if ok then
                 DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_ADDED_WORD"], word))
+            elseif reason == "exists" then
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_WORD_EXISTS"], word))
             end
         else
             DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_ADD"])
+        end
+    elseif cmd == "safe" then
+        local characters = CSPAM.db.whitelist.characters
+        if arg and arg ~= "" then
+            local trimmed = arg:trim()
+            local key = (trimmed:match("^([^-]+)") or trimmed):lower()
+            if characters[key] then
+                characters[key] = nil
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_REMOVED"], key))
+            else
+                characters[key] = true
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_ADDED"], key))
+            end
+        else
+            local names = {}
+            for name in pairs(characters) do
+                names[#names + 1] = name
+            end
+            if #names == 0 then
+                DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_SAFE_EMPTY"])
+            else
+                table.sort(names)
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_LIST"], table.concat(names, ", ")))
+            end
         end
     elseif cmd == "stats" then
         local scanned = CSPAM.db.stats.totalScanned or 0
@@ -208,6 +276,7 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_OPEN"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_TOGGLE"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_ADD"])
+        DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_SAFE"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_STATS"])
     end
 end

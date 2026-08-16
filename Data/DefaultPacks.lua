@@ -4,6 +4,8 @@ CSPAM.Packs = {
     politics = {
         name = "Political Discourse & Elections",
         description = "Political candidates, parties, elections, ideology, and government discourse.",
+        example = "Intercepts: 'trump', 'biden', 'kamala harris', 'democrats', 'republicans', 'project 2025', 'elections', etc.",
+        order = 1,
         enabled = true,
         words = {
             { text = "trump", mode = "EXACT" },
@@ -168,6 +170,8 @@ CSPAM.Packs = {
     boosting = {
         name = "Carries, Boosting & Gold Seller Spam",
         description = "WTS carries, paid M+ boosts, power leveling, external platforms, and gold sellers.",
+        example = "Intercepts: 'wts boost', 'm+ carry', 'afk leveling', 'mythic carry', 'discord.gg/', etc.",
+        order = 2,
         enabled = false,
         words = {
             { text = "wts boost", mode = "PHRASE" },
@@ -371,12 +375,32 @@ CSPAM.Packs = {
             { text = "g.o.l.d.s", mode = "CONTAINS" },
             { text = "d-i-s-c-o-r-d", mode = "CONTAINS" },
             { text = "d.s.c.g.g", mode = "CONTAINS" },
+            -- Raid-sale boilerplate & boost-shop sites (observed live spam, Aug 2026).
+            -- Modern sellers avoid "boost/carry/gold" entirely and advertise via
+            -- raid links plus phrases like "SAVED HEROIC [GOLD ONLY - PAY IN RAID]".
+            { text = "saved heroic", mode = "PHRASE" },
+            { text = "gold only", mode = "PHRASE" },
+            { text = "pay in raid", mode = "PHRASE" },
+            { text = "best service", mode = "PHRASE" },
+            { text = "best price guaranteed", mode = "PHRASE" },
+            { text = "gear service", mode = "PHRASE" },
+            { text = "pm for booking", mode = "PHRASE" },
+            { text = "world tour", mode = "PHRASE" },
+            { text = "24/7 support", mode = "PHRASE" },
+            { text = "80-90 leveling", mode = "PHRASE" },
+            { text = "leveling 80-90", mode = "PHRASE" },
+            { text = "leveling 1-80", mode = "PHRASE" },
+            { text = "gamer-choice", mode = "CONTAINS" },
+            { text = "mythicstore", mode = "CONTAINS" },
+            { text = "vault fills", mode = "PHRASE" },
         }
     },
 
     toxicity = {
         name = "Toxicity, Harassment & Hostile Slurs",
         description = "Hate speech, severe harassment, death wishes, and unmoderated toxicity.",
+        example = "Intercepts: 'kys', 'kill yourself', and major hate speech slurs.",
+        order = 3,
         enabled = true,
         words = {
             { text = "kys", mode = "EXACT" },

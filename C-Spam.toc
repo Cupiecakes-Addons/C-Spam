@@ -3,9 +3,16 @@
 ## Title: |cffff3b30C-SPAM|r |cff00e5ff[Chat Intercept System]|r
 ## Notes: Automated chat threat interceptor (C-RAM inspired). Eliminates political noise, gold spam, and toxic keywords before reaching your chat.
 ## Author: Cupiecakes
-## Version: 1.5.0
+## Version: 1.6.2
 ## SavedVariables: CSPAM_DB
-## IconTexture: Interface\AddOns\CSPAM\Media\icon.tga
+## IconTexture: Interface\AddOns\C-Spam\Media\icon.tga
+## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
+
+# Bundled libraries (minimap button / ElvUI & broker-display integration)
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 Locales\enUS.lua
 Data\DefaultPacks.lua

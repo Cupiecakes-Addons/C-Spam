@@ -44,18 +44,23 @@
 |---|---|
 | `/cs` or `/cspam` | Open the **C-SPAM Tactical Defense Console** |
 | `/cs toggle` | Quick toggle **ARM / DISARM** intercept status |
-| `/cs add <word>` | Register an exact signature to the Threat Matrix |
+| `/cs add <word or phrase>` | Register a signature (multi-word input becomes a PHRASE) |
+| `/cs safe <name>` | Toggle a character on the IFF safe-ally whitelist |
 | `/cs stats` | Output telemetry report to chat |
 
 ---
 
 ## 📥 Installation
 
-1. Download via **WowUp** from: `https://github.com/Cupiecakes-Addons/C-Spam`
-2. Or extract the `CSPAM` folder into:
-   `World of Warcraft\_retail_\Interface\AddOns\CSPAM\`
-3. Launch WoW (or type `/reload` in-game).
-4. Type `/cs` or click the Minimap Turret icon to configure.
+**From a packaged release (recommended):**
+1. Grab the latest zip from the [GitHub Releases](https://github.com/Cupiecakes-Addons/C-Spam/releases) page (WowUp can also install from the repo URL once a release exists).
+2. Extract it straight into `World of Warcraft\_retail_\Interface\AddOns\` — you end up with `Interface\AddOns\C-Spam\C-Spam.toc`. LibStub / LibDataBroker / LibDBIcon are bundled for ElvUI & minimap-bar integration.
+
+**From source (git checkout):**
+1. Clone or copy this repository into `Interface\AddOns\` and make sure the folder is named exactly `C-Spam` — WoW only loads `<Folder>\<Folder>.toc`. The checkout is a complete addon (libraries are vendored in `Libs/`).
+2. To build the release-style zip locally, run `scripts/package.sh` and drop `dist/C-Spam.zip` contents into your AddOns folder.
+
+Then launch WoW (or type `/reload`) and type `/cs` or click the Minimap Turret icon to configure.
 
 ---
 

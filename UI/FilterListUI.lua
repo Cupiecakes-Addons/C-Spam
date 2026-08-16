@@ -20,6 +20,8 @@ local SOLID_TEX = "Interface\\Buttons\\WHITE8X8"
 local C_BG_DARK    = { 0.05, 0.05, 0.06, 0.78 }
 local C_BG_PANEL   = { 0.07, 0.07, 0.08, 0.70 }
 local C_BG_ROW_ALT = { 0.06, 0.06, 0.08, 0.50 }
+local C_ROW_ODD    = { 0.05, 0.05, 0.07, 0.35 }
+local C_ROW_BORDER = { 0.12, 0.12, 0.15, 0.50 }
 local C_BORDER     = { 0.00, 0.00, 0.00, 1.00 }
 local C_INNER_BORD = { 0.18, 0.18, 0.22, 0.85 }
 local C_ACCENT     = { 0.00, 0.70, 1.00, 1.00 } -- ElvUI Cyan
@@ -96,119 +98,99 @@ local function CreateElvButton(parent, text, width, height, isRed)
     return btn
 end
 
--- ElvUI Flat Checkbox with label and properly bounded subtext
-local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
-    local check = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    check:SetSize(16, 16)
-    CreateElvBackdrop(check, C_BTN_NORMAL, C_INNER_BORD, false)
+-- ElvUI Flat Toggle (checkbox/radio) with label and properly bounded subtext.
+-- opts: { radio, size, inset, accent, label, subText, onClick, textWidth }
+local function CreateElvToggle(parent, opts)
+    local size = opts.size or 16
+    local inset = opts.inset or 3
+    local accent = opts.accent or C_ACCENT
 
-    local inner = check:CreateTexture(nil, "OVERLAY")
+    local toggle = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    toggle:SetSize(size, size)
+    CreateElvBackdrop(toggle, C_BTN_NORMAL, C_INNER_BORD, false)
+
+    local inner = toggle:CreateTexture(nil, "OVERLAY")
     inner:SetTexture(SOLID_TEX)
-    inner:SetPoint("TOPLEFT", 3, -3)
-    inner:SetPoint("BOTTOMRIGHT", -3, 3)
-    inner:SetColorTexture(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+    inner:SetPoint("TOPLEFT", inset, -inset)
+    inner:SetPoint("BOTTOMRIGHT", -inset, inset)
+    inner:SetColorTexture(accent[1], accent[2], accent[3], 1)
     inner:Hide()
-    check.inner = inner
+    toggle.inner = inner
 
-    check.text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    check.text:SetPoint("LEFT", check, "RIGHT", 7, 0)
-    check.text:SetText(labelText or "")
+    toggle.text = toggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    toggle.text:SetPoint("LEFT", toggle, "RIGHT", 7, 0)
+    toggle.text:SetText(opts.label or "")
 
-    if subText then
+    if opts.subText then
         local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        sub:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 23, -2)
-        local maxW = textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
+        sub:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", size + 7, -2)
+        local maxW = opts.textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
         sub:SetWidth(maxW)
         sub:SetWordWrap(true)
         sub:SetJustifyH("LEFT")
-        sub:SetText(subText)
-        check.sub = sub
+        sub:SetText(opts.subText)
+        toggle.sub = sub
     end
 
     local checked = false
-    function check:SetChecked(val)
+    function toggle:SetChecked(val)
         checked = (val == true)
         if checked then
             inner:Show()
-            self:SetBackdropBorderColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+            self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
         else
             inner:Hide()
             self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
         end
     end
 
-    function check:GetChecked()
+    function toggle:GetChecked()
         return checked
     end
 
-    check:SetScript("OnClick", function(self)
-        self:SetChecked(not checked)
-        if onClick then onClick(checked) end
+    toggle:SetScript("OnClick", function(self)
+        if opts.radio then
+            -- Radio selection state is driven by the group owner via SetChecked
+            if opts.onClick then opts.onClick() end
+        else
+            self:SetChecked(not checked)
+            if opts.onClick then opts.onClick(checked) end
+        end
     end)
 
-    check:SetScript("OnEnter", function(self)
-        self:SetBackdropBorderColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+    toggle:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
     end)
 
-    check:SetScript("OnLeave", function(self)
+    toggle:SetScript("OnLeave", function(self)
         if not checked then
             self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
         end
     end)
 
-    return check
+    return toggle
 end
 
--- ElvUI Flat Radio Button with properly bounded subtext
+local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
+    return CreateElvToggle(parent, {
+        label = labelText,
+        subText = subText,
+        onClick = onClick,
+        textWidth = textWidth,
+    })
+end
+
 local function CreateElvRadio(parent, labelText, subText, onClick, textWidth)
-    local radio = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    radio:SetSize(14, 14)
-    CreateElvBackdrop(radio, C_BTN_NORMAL, C_INNER_BORD, false)
-
-    local inner = radio:CreateTexture(nil, "OVERLAY")
-    inner:SetTexture(SOLID_TEX)
-    inner:SetPoint("TOPLEFT", 2, -2)
-    inner:SetPoint("BOTTOMRIGHT", -2, 2)
-    inner:SetColorTexture(C_ACCENT_RED[1], C_ACCENT_RED[2], C_ACCENT_RED[3], 1)
-    inner:Hide()
-    radio.inner = inner
-
-    radio.text = radio:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    radio.text:SetPoint("LEFT", radio, "RIGHT", 7, 0)
-    radio.text:SetText(labelText or "")
-
-    if subText then
-        local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        sub:SetPoint("TOPLEFT", radio, "BOTTOMLEFT", 21, -2)
-        local maxW = textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
-        sub:SetWidth(maxW)
-        sub:SetWordWrap(true)
-        sub:SetJustifyH("LEFT")
-        sub:SetText(subText)
-        radio.sub = sub
-    end
-
-    local checked = false
-    function radio:SetChecked(val)
-        checked = (val == true)
-        if checked then
-            inner:Show()
-            self:SetBackdropBorderColor(C_ACCENT_RED[1], C_ACCENT_RED[2], C_ACCENT_RED[3], 1)
-        else
-            inner:Hide()
-            self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
-        end
-    end
-
-    function radio:GetChecked()
-        return checked
-    end
-
-    radio:SetScript("OnClick", function(self)
-        if onClick then onClick() end
-    end)
-
-    return radio
+    return CreateElvToggle(parent, {
+        radio = true,
+        size = 14,
+        inset = 2,
+        accent = C_ACCENT_RED,
+        label = labelText,
+        subText = subText,
+        onClick = onClick,
+        textWidth = textWidth,
+    })
 end
 
 -- ElvUI Flat EditBox
@@ -291,7 +273,7 @@ function UI:Init()
     local iconLogo = headerBar:CreateTexture(nil, "OVERLAY")
     iconLogo:SetSize(20, 20)
     iconLogo:SetPoint("LEFT", 6, 0)
-    iconLogo:SetTexture("Interface\\AddOns\\CSPAM\\Media\\icon.tga")
+    iconLogo:SetTexture("Interface\\AddOns\\" .. addonName .. "\\Media\\icon.tga")
 
     local title = headerBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("LEFT", iconLogo, "RIGHT", 7, 0)
@@ -324,11 +306,7 @@ function UI:Init()
     local masterBtn = CreateElvButton(headerBar, "ARMED", 90, 20)
     masterBtn:SetPoint("RIGHT", closeBtn, "LEFT", -6, 0)
     masterBtn:SetScript("OnClick", function()
-        CSPAM.db.enabled = not CSPAM.db.enabled
-        UI:Refresh()
-        if CSPAM.Minimap and CSPAM.Minimap.Refresh then
-            CSPAM.Minimap:Refresh()
-        end
+        CSPAM:ToggleEnabled()
     end)
     SetElvTooltip(masterBtn, "Master Interceptor Switch", 
         "Globally arms or disarms all chat threat filtering across all channels.\n\n" ..
@@ -457,17 +435,8 @@ function UI:Init()
     local addBtn = CreateElvButton(p1, "+ Register Threat", 126, 24)
     addBtn:SetPoint("LEFT", modeBtn, "RIGHT", 6, 0)
     addBtn:SetScript("OnClick", function()
-        local text = addInput:GetText():trim()
-        if text ~= "" then
-            table.insert(CSPAM.db.customWords, {
-                text = text,
-                mode = selectedMode,
-                enabled = true,
-                category = "Custom"
-            })
+        if CSPAM:AddCustomRule(addInput:GetText(), selectedMode) then
             addInput:SetText("")
-            CSPAM.Engine:RebuildIndex()
-            UI:Refresh()
         end
     end)
 
@@ -517,54 +486,49 @@ function UI:Init()
     local p2 = contentPanels[2]
     p2.packCheckboxes = {}
 
-    local packDetails = {
-        politics = {
-            title = "POLITICAL DISCOURSE & ELECTIONS",
-            sub = "Filters US and international political candidates, election campaigns, government discourse, party rhetoric, and partisan arguments.",
-            example = "Intercepts: 'trump', 'biden', 'kamala harris', 'democrats', 'republicans', 'project 2025', 'elections', etc.",
-        },
-        boosting = {
-            title = "CARRIES, BOOSTING & GOLD SELLER SPAM",
-            sub = "Neutralizes advertising for paid Mythic+ carries, raid sales, AFK leveling, external discord links, and gold sellers in Trade/Services.",
-            example = "Intercepts: 'wts boost', 'm+ carry', 'afk leveling', 'mythic carry', 'discord.gg/', etc.",
-        },
-        toxicity = {
-            title = "TOXICITY, HARASSMENT & HOSTILE SLURS",
-            sub = "Intervention layer filtering severe harassment, death wishes, toxic toxicity, and unmoderated hate slurs before they reach your chat.",
-            example = "Intercepts: 'kys', 'kill yourself', and major hate speech slurs.",
-        }
-    }
+    -- Cards are built straight from Data/DefaultPacks.lua (name, description,
+    -- example, order): a new pack added there appears here automatically
+    local packKeys = {}
+    for key in pairs(CSPAM.Packs or {}) do
+        packKeys[#packKeys + 1] = key
+    end
+    table.sort(packKeys, function(a, b)
+        local oa = CSPAM.Packs[a].order or math.huge
+        local ob = CSPAM.Packs[b].order or math.huge
+        if oa ~= ob then return oa < ob end
+        return a < b
+    end)
 
-    local packKeys = { "politics", "boosting", "toxicity" }
     local cardY = -12
     for _, key in ipairs(packKeys) do
         local pack = CSPAM.Packs[key]
-        local details = packDetails[key]
-        if pack and details then
-            local card = CreateElvCard(p2, details.title, details.sub, 684, 105)
-            card:SetPoint("TOPLEFT", 10, cardY)
+        local packKey = key
+        local title = (pack.name or key):upper()
+        local card = CreateElvCard(p2, title, pack.description, 684, 105)
+        card:SetPoint("TOPLEFT", 10, cardY)
 
-            local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
-                CSPAM.db.packs[key] = checked
-                CSPAM.Engine:RebuildIndex()
-                UI:Refresh()
-            end)
-            cb:SetPoint("TOPLEFT", 12, -48)
+        local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
+            CSPAM.db.packs[packKey] = checked
+            CSPAM.Engine:RebuildIndex()
+            UI:Refresh()
+        end)
+        cb:SetPoint("TOPLEFT", 12, -48)
 
-            local badge = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            badge:SetPoint("LEFT", cb.text, "RIGHT", 14, 0)
-            badge:SetText(string.format("(|cffffd100%d calibrated signatures|r)", pack.words and #pack.words or 0))
+        local badge = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        badge:SetPoint("LEFT", cb.text, "RIGHT", 14, 0)
+        badge:SetText(string.format("(|cffffd100%d calibrated signatures|r)", pack.words and #pack.words or 0))
 
+        if pack.example then
             local ex = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
             ex:SetPoint("TOPLEFT", 12, -74)
             ex:SetWidth(660)
             ex:SetJustifyH("LEFT")
-            ex:SetText("|cff888888" .. details.example .. "|r")
-
-            SetElvTooltip(cb, details.title, details.sub, details.example)
-            p2.packCheckboxes[key] = cb
-            cardY = cardY - 118
+            ex:SetText("|cff888888" .. pack.example .. "|r")
         end
+
+        SetElvTooltip(cb, title, pack.description, pack.example)
+        p2.packCheckboxes[packKey] = cb
+        cardY = cardY - 118
     end
 
     -- =========================================================================
@@ -617,6 +581,7 @@ function UI:Init()
     local rHide = CreateElvRadio(cardDoctrine, "Kinetic Intercept (Silent Drop)", 
         "Message is completely dropped. Nothing appears in your chat window.", function()
         CSPAM.db.action = "HIDE"
+        CSPAM.Engine:InvalidateCache()
         p4.rHide:SetChecked(true)
         p4.rMask:SetChecked(false)
     end, 280)
@@ -627,6 +592,7 @@ function UI:Init()
     local rMask = CreateElvRadio(cardDoctrine, "Electronic Jamming (Censor ***)", 
         "Message passes through, but matching keywords are censored with asterisks.", function()
         CSPAM.db.action = "MASK"
+        CSPAM.Engine:InvalidateCache()
         p4.rMask:SetChecked(true)
         p4.rHide:SetChecked(false)
     end, 280)
@@ -658,53 +624,36 @@ function UI:Init()
     p4.cbGuild = cbGuild
     p4.cbParty = cbParty
 
-    -- Card 3: Monitored Airspace (Channels) - 2 Columns (Width 684, Left textWidth 280, Right textWidth 280)
-    local cardAirspace = CreateElvCard(p4, "MONITORED AIRSPACE (CHAT CHANNELS)", 
-        "Select which chat channels the C-SPAM radar actively monitors and filters.", 684, 142)
+    -- Card 3: Monitored Airspace (Channels) — built from Events.ChannelGroups
+    -- so every monitored event has a toggle and the two can never drift
+    local channelGroups = (CSPAM.Events and CSPAM.Events.ChannelGroups) or {}
+    local airspaceRows = math.ceil(#channelGroups / 2)
+    local cardAirspace = CreateElvCard(p4, "MONITORED AIRSPACE (CHAT CHANNELS)",
+        "Select which chat channels the C-SPAM radar actively monitors and filters.", 684, 52 + airspaceRows * 46)
     cardAirspace:SetPoint("TOPLEFT", 10, -155)
 
-    local cbTrade = CreateElvCheckBox(cardAirspace, "Public Channels (Trade, Services, General, LFG)", 
-        "Monitors public realm channels where boosting and political spam are most rampant.", function(c) 
-        CSPAM.db.channels.CHAT_MSG_CHANNEL = c 
-    end, 280)
-    cbTrade:SetPoint("TOPLEFT", 12, -44)
-    SetElvTooltip(cbTrade, "Public Channels", "Applies intercept rules to Trade, Services, General, LocalDefense, and LookingForGroup channels.")
-
-    local cbClub = CreateElvCheckBox(cardAirspace, "Communities & Club Channels", 
-        "Monitors WoW Community and custom player channels.", function(c) 
-        CSPAM.db.channels.CHAT_MSG_COMMUNITIES_CHANNEL = c 
-    end, 280)
-    cbClub:SetPoint("TOPLEFT", 12, -90)
-    SetElvTooltip(cbClub, "Communities & Clubs", "Applies intercept rules to Blizzard Community channels.")
-
-    local cbSay = CreateElvCheckBox(cardAirspace, "Local Say & Yell", 
-        "Monitors local open-world chat (/say and /yell).", function(c)
-        CSPAM.db.channels.CHAT_MSG_SAY = c
-        CSPAM.db.channels.CHAT_MSG_YELL = c
-    end, 280)
-    cbSay:SetPoint("TOPLEFT", 355, -44)
-    SetElvTooltip(cbSay, "Local Say & Yell", "Monitors open-world spatial chat in cities and zones.")
-
-    local cbWhisper = CreateElvCheckBox(cardAirspace, "Direct Whispers", 
-        "Monitors direct private whispers from strangers (Allies still bypass if IFF is enabled).", function(c) 
-        CSPAM.db.channels.CHAT_MSG_WHISPER = c 
-    end, 280)
-    cbWhisper:SetPoint("TOPLEFT", 355, -90)
-    SetElvTooltip(cbWhisper, "Direct Whispers", "Monitors 1-on-1 private whispers sent to you by other players.")
-
-    p4.cbTrade = cbTrade
-    p4.cbClub = cbClub
-    p4.cbSay = cbSay
-    p4.cbWhisper = cbWhisper
+    p4.channelChecks = {}
+    for i, group in ipairs(channelGroups) do
+        local col = (i - 1) % 2
+        local rowIdx = math.floor((i - 1) / 2)
+        local key = group.key
+        local cb = CreateElvCheckBox(cardAirspace, group.label, group.sub, function(c)
+            CSPAM.db.channelGroups[key] = c
+        end, 280)
+        cb:SetPoint("TOPLEFT", 12 + col * 343, -44 - rowIdx * 46)
+        SetElvTooltip(cb, group.label, group.tooltip)
+        p4.channelChecks[key] = cb
+    end
 
     -- Card 4: Evasion Decoders & Interface (Width 684, textWidth 610)
     local cardEvasion = CreateElvCard(p4, "EVASION DECODING & INTERFACE RADAR", 
         "Advanced heuristics that decode bypass tricks, plus Minimap HUD controls.", 684, 150)
-    cardEvasion:SetPoint("TOPLEFT", 10, -308)
+    cardEvasion:SetPoint("TOPLEFT", cardAirspace, "BOTTOMLEFT", 0, -8)
 
     local cbLeet = CreateElvCheckBox(cardEvasion, "Decode Camouflage, Leetspeak & Homoglyphs", 
-        "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c) 
-        CSPAM.db.options.checkLeet = c 
+        "Translates '@' -> 'a', '0' -> 'o', '$' -> 's', '1' -> 'i', 'v' -> 'u', and Russian Cyrillic lookalikes back to standard Latin characters.", function(c)
+        CSPAM.db.options.checkLeet = c
+        CSPAM.Engine:InvalidateCache()
     end, 610)
     cbLeet:SetPoint("TOPLEFT", 12, -44)
     SetElvTooltip(cbLeet, "Decode Camouflage & Leetspeak", 
@@ -714,8 +663,9 @@ function UI:Init()
         "A spammer typing 'tr0mp' or 'b!den' or 'wts b00st' is automatically decoded and intercepted.")
 
     local cbRepeat = CreateElvCheckBox(cardEvasion, "Collapse Stutter Evasion (e.g. 'traaaash' -> 'trash')", 
-        "Collapses runs of 3+ identical letters and spaces between characters ('t.r.u.m.p' -> 'trump').", function(c) 
-        CSPAM.db.options.collapseRepeats = c 
+        "Collapses runs of 3+ identical letters and spaces between characters ('t.r.u.m.p' -> 'trump').", function(c)
+        CSPAM.db.options.collapseRepeats = c
+        CSPAM.Engine:InvalidateCache()
     end, 610)
     cbRepeat:SetPoint("TOPLEFT", 12, -78)
     SetElvTooltip(cbRepeat, "Collapse Stutter Evasion", 
@@ -787,30 +737,47 @@ function UI:Init()
     importBtn:SetPoint("BOTTOMLEFT", exportBtn, "BOTTOMRIGHT", 8, 0)
     importBtn:SetScript("OnClick", function()
         local text = ieEditBox:GetText()
-        local count = 0
+
+        local existing = {}
+        for _, item in ipairs(CSPAM.db.customWords) do
+            existing[(item.mode or "EXACT"):upper() .. ":" .. item.text:lower()] = true
+        end
+
+        local added, skipped = 0, 0
         for line in text:gmatch("[^\r\n]+") do
             line = line:trim()
             if line ~= "" then
                 local mode, word = line:match("^(%w+):(.*)$")
-                if not mode then
+                if mode and CSPAM.Engine:IsValidMode(mode) then
+                    mode = mode:upper()
+                    word = word:trim()
+                else
+                    -- Not a recognized MODE: prefix (e.g. a pasted URL like
+                    -- "https://..."): treat the whole line as the signature
                     word = line
-                    mode = "EXACT"
+                    mode = word:find("%s") and "PHRASE" or "EXACT"
                 end
-                word = word:trim()
                 if word ~= "" then
-                    table.insert(CSPAM.db.customWords, {
-                        text = word,
-                        mode = mode:upper(),
-                        enabled = true,
-                        category = "Custom"
-                    })
-                    count = count + 1
+                    local dedupeKey = mode .. ":" .. word:lower()
+                    if existing[dedupeKey] then
+                        skipped = skipped + 1
+                    else
+                        existing[dedupeKey] = true
+                        table.insert(CSPAM.db.customWords, {
+                            text = word,
+                            mode = mode,
+                            enabled = true,
+                            category = "Custom"
+                        })
+                        added = added + 1
+                    end
                 end
             end
         end
+
         CSPAM.Engine:RebuildIndex()
         UI:Refresh()
-        DEFAULT_CHAT_FRAME:AddMessage(string.format(L["IE_SUCCESS"] or "Loaded %d threat signatures.", count))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(L["IE_SUCCESS_DETAIL"] or "Loaded %d new threat signatures (%d duplicates skipped).", added, skipped))
     end)
     SetElvTooltip(importBtn, "Import Matrix Data", "Parses the text box (one signature per line) and adds all entries into your active Threat Matrix.")
 
@@ -833,11 +800,19 @@ function UI:Toggle()
     end
 end
 
--- Hook called by Engine.lua when a threat is intercepted
+-- Hook called by Engine.lua when a threat is intercepted. Coalesces bursts:
+-- this fires from the chat-filter hot path, so instead of rebuilding the
+-- full log list synchronously per message, refreshes are batched to at
+-- most four per second.
+local logRefreshQueued = false
 function UI:OnLogUpdated()
-    if mainFrame and mainFrame:IsShown() and activeTab == 3 then
-        self:Refresh()
-    end
+    if not (mainFrame and mainFrame:IsShown() and activeTab == 3) then return end
+    if logRefreshQueued then return end
+    logRefreshQueued = true
+    C_Timer.After(0.25, function()
+        logRefreshQueued = false
+        UI:Refresh()
+    end)
 end
 
 function UI:Refresh()
@@ -876,6 +851,7 @@ function UI:Refresh()
                     if not row then
                         row = CreateFrame("Frame", nil, parent, "BackdropTemplate")
                         row:SetSize(656, 24)
+                        CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
                         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                         row.text:SetPoint("LEFT", 10, 0)
@@ -885,24 +861,26 @@ function UI:Refresh()
 
                         local delBtn = CreateElvButton(row, "×", 22, 18, true)
                         delBtn:SetPoint("RIGHT", -6, 0)
+                        delBtn:SetScript("OnClick", function(self)
+                            local idx = self:GetParent().dataIndex
+                            if idx then
+                                table.remove(CSPAM.db.customWords, idx)
+                                CSPAM.Engine:RebuildIndex()
+                                UI:Refresh()
+                            end
+                        end)
                         row.delBtn = delBtn
 
                         parent.rows[rowIndex] = row
                     end
 
-                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
-                    CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
+                    local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
+                    row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                     row:SetPoint("TOPLEFT", 0, -y)
                     row.text:SetText(item.text)
                     row.mode:SetText("|cffffd100[" .. (item.mode or "EXACT") .. "]|r")
-
-                    local itemIndex = i
-                    row.delBtn:SetScript("OnClick", function()
-                        table.remove(CSPAM.db.customWords, itemIndex)
-                        CSPAM.Engine:RebuildIndex()
-                        UI:Refresh()
-                    end)
+                    row.dataIndex = i
 
                     row:Show()
                     y = y + 26
@@ -940,6 +918,7 @@ function UI:Refresh()
                 if not row then
                     row = CreateFrame("Frame", nil, parent, "BackdropTemplate")
                     row:SetSize(656, 40)
+                    CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
                     row.header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                     row.header:SetPoint("TOPLEFT", 8, -4)
@@ -952,12 +931,13 @@ function UI:Refresh()
                     parent.rows[rowIndex] = row
                 end
 
-                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or { 0.05, 0.05, 0.07, 0.35 }
-                CreateElvBackdrop(row, bg, { 0.12, 0.12, 0.15, 0.50 }, false)
+                local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
+                row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                 row:SetPoint("TOPLEFT", 0, -y)
                 local timeStr = date("%H:%M:%S", entry.timestamp or time())
-                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat"))
+                local repeats = (entry.count and entry.count > 1) and string.format(" |cffffd100(x%d)|r", entry.count) or ""
+                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat", repeats))
                 row.msg:SetText(entry.message or "")
                 row:Show()
                 y = y + 42
@@ -976,10 +956,11 @@ function UI:Refresh()
             if p4.cbFriends then p4.cbFriends:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.friends == true) end
             if p4.cbGuild then p4.cbGuild:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.guild == true) end
             if p4.cbParty then p4.cbParty:SetChecked(CSPAM.db.whitelist and CSPAM.db.whitelist.party == true) end
-            if p4.cbTrade then p4.cbTrade:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_CHANNEL ~= false) end
-            if p4.cbClub then p4.cbClub:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_COMMUNITIES_CHANNEL ~= false) end
-            if p4.cbSay then p4.cbSay:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_SAY ~= false) end
-            if p4.cbWhisper then p4.cbWhisper:SetChecked(CSPAM.db.channels and CSPAM.db.channels.CHAT_MSG_WHISPER == true) end
+            if p4.channelChecks and CSPAM.db.channelGroups then
+                for key, cb in pairs(p4.channelChecks) do
+                    cb:SetChecked(CSPAM.db.channelGroups[key] == true)
+                end
+            end
             if p4.cbLeet then p4.cbLeet:SetChecked(CSPAM.db.options and CSPAM.db.options.checkLeet ~= false) end
             if p4.cbRepeat then p4.cbRepeat:SetChecked(CSPAM.db.options and CSPAM.db.options.collapseRepeats ~= false) end
             if p4.cbMinimap then p4.cbMinimap:SetChecked(CSPAM.db.options and CSPAM.db.options.showMinimap ~= false) end

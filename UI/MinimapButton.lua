@@ -5,7 +5,9 @@ local MM = CSPAM.Minimap
 local L = CSPAM.L
 
 local button = nil
-local ICON_PATH = "Interface\\AddOns\\CSPAM\\Media\\icon.tga"
+-- Derive from the actual installed folder name so textures resolve no matter
+-- what the addon directory is called
+local ICON_PATH = "Interface\\AddOns\\" .. addonName .. "\\Media\\icon.tga"
 
 local function UpdateButtonPosition(angle)
     if not button then return end
@@ -20,7 +22,7 @@ local function UpdateButtonPosition(angle)
     local radiusY = (Minimap:GetHeight() / 2) + 8
 
     local x, y
-    if minimapShape == "SQUARE" or (ElvUI and Minimap:IsShown()) then
+    if minimapShape == "SQUARE" then
         local diag = math.max(math.abs(cos), math.abs(sin))
         x = (cos / diag) * radiusX
         y = (sin / diag) * radiusY
@@ -34,6 +36,38 @@ local function UpdateButtonPosition(angle)
 end
 MM.UpdatePosition = UpdateButtonPosition
 
+-- Shared click/tooltip behavior for both the LDB data object and the
+-- standalone fallback button
+local function HandleClick(_, btn)
+    if btn == "LeftButton" then
+        if CSPAM.UI and CSPAM.UI.Toggle then
+            CSPAM.UI:Toggle()
+        end
+    elseif btn == "RightButton" then
+        CSPAM:ToggleEnabled()
+    end
+end
+
+local function BuildTooltip(tooltip)
+    tooltip:AddLine("|cffff3b30C-SPAM|r |cff00e5ffPhalanx Defense|r", 1, 1, 1)
+    tooltip:AddLine(" ")
+
+    local armed = (CSPAM.db and CSPAM.db.enabled)
+    local statusText = armed and "|cff00ff00[ARMED & ACTIVE]|r" or "|cffff2020[DISARMED]|r"
+    tooltip:AddDoubleLine("Interceptor Status:", statusText, 0.9, 0.9, 0.9, 1, 1, 1)
+
+    local scanned = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalScanned) or 0
+    local filtered = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalFiltered) or 0
+    local pct = scanned > 0 and ((filtered / scanned) * 100) or 0
+    tooltip:AddDoubleLine("Airspace Scanned:", string.format("|cffffffff%d|r", scanned), 0.9, 0.9, 0.9, 1, 1, 1)
+    tooltip:AddDoubleLine("Threats Intercepted:", string.format("|cffff2020%d|r (|cff00e5ff%.1f%%|r)", filtered, pct), 0.9, 0.9, 0.9, 1, 1, 1)
+
+    tooltip:AddLine(" ")
+    tooltip:AddLine("|cff00e5ffLeft-Click:|r Toggle Tactical Defense Console", 0.8, 0.8, 0.8)
+    tooltip:AddLine("|cff00e5ffRight-Click:|r Quick ARM / DISARM toggle", 0.8, 0.8, 0.8)
+    tooltip:AddLine("|cff00e5ffDrag:|r Reposition Minimap Button", 0.8, 0.8, 0.8)
+end
+
 function MM:Init()
     -- 1. Try LibDataBroker & LibDBIcon integration (for ElvUI / Minimap Bar integration)
     local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
@@ -44,40 +78,8 @@ function MM:Init()
             type = "launcher",
             text = "C-SPAM",
             icon = ICON_PATH,
-            OnClick = function(self, btn)
-                if btn == "LeftButton" then
-                    if CSPAM.UI and CSPAM.UI.Toggle then
-                        CSPAM.UI:Toggle()
-                    end
-                elseif btn == "RightButton" then
-                    CSPAM.db.enabled = not CSPAM.db.enabled
-                    local statusMsg = CSPAM.db.enabled and (L["SLASH_TOGGLE_ON"] or "|cffff3b30C-SPAM:|r Interceptor |cff00ff00ARMED|r.") or (L["SLASH_TOGGLE_OFF"] or "|cffff3b30C-SPAM:|r Interceptor |cffff2020DISARMED|r.")
-                    DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
-                    if CSPAM.UI and CSPAM.UI.Refresh then
-                        CSPAM.UI:Refresh()
-                    end
-                    MM:Refresh()
-                end
-            end,
-            OnTooltipShow = function(tooltip)
-                tooltip:AddLine("|cffff3b30C-SPAM|r |cff00e5ffPhalanx Defense|r", 1, 1, 1)
-                tooltip:AddLine(" ")
-
-                local armed = (CSPAM.db and CSPAM.db.enabled)
-                local statusText = armed and "|cff00ff00[ARMED & ACTIVE]|r" or "|cffff2020[DISARMED]|r"
-                tooltip:AddDoubleLine("Interceptor Status:", statusText, 0.9, 0.9, 0.9, 1, 1, 1)
-
-                local scanned = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalScanned) or 0
-                local filtered = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalFiltered) or 0
-                local pct = scanned > 0 and ((filtered / scanned) * 100) or 0
-                tooltip:AddDoubleLine("Airspace Scanned:", string.format("|cffffffff%d|r", scanned), 0.9, 0.9, 0.9, 1, 1, 1)
-                tooltip:AddDoubleLine("Threats Intercepted:", string.format("|cffff2020%d|r (|cff00e5ff%.1f%%|r)", filtered, pct), 0.9, 0.9, 0.9, 1, 1, 1)
-
-                tooltip:AddLine(" ")
-                tooltip:AddLine("|cff00e5ffLeft-Click:|r Toggle Tactical Defense Console", 0.8, 0.8, 0.8)
-                tooltip:AddLine("|cff00e5ffRight-Click:|r Quick ARM / DISARM toggle", 0.8, 0.8, 0.8)
-                tooltip:AddLine("|cff00e5ffDrag:|r Reposition Minimap Button", 0.8, 0.8, 0.8)
-            end,
+            OnClick = HandleClick,
+            OnTooltipShow = BuildTooltip,
         })
         MM.dataObj = dataObj
 
@@ -85,7 +87,13 @@ function MM:Init()
             if not CSPAM.db.options.minimap then
                 CSPAM.db.options.minimap = { hide = false }
             end
-            LDBIcon:Register("CSPAM", dataObj, CSPAM.db.options.minimap)
+            local mm = CSPAM.db.options.minimap
+            -- Carry the fallback button's saved angle over to LibDBIcon's
+            -- position (both are degrees around the minimap)
+            if mm.minimapPos == nil and CSPAM.db.options.minimapAngle then
+                mm.minimapPos = CSPAM.db.options.minimapAngle
+            end
+            LDBIcon:Register("CSPAM", dataObj, mm)
             MM.ldbRegistered = true
             return
         end
@@ -139,22 +147,8 @@ function MM:Init()
         self:SetScript("OnUpdate", nil)
     end)
 
-    -- Click Handlers
-    button:SetScript("OnClick", function(self, btn)
-        if btn == "LeftButton" then
-            if CSPAM.UI and CSPAM.UI.Toggle then
-                CSPAM.UI:Toggle()
-            end
-        elseif btn == "RightButton" then
-            CSPAM.db.enabled = not CSPAM.db.enabled
-            local statusMsg = CSPAM.db.enabled and (L["SLASH_TOGGLE_ON"] or "|cffff3b30C-SPAM:|r Interceptor |cff00ff00ARMED|r.") or (L["SLASH_TOGGLE_OFF"] or "|cffff3b30C-SPAM:|r Interceptor |cffff2020DISARMED|r.")
-            DEFAULT_CHAT_FRAME:AddMessage(statusMsg)
-            if CSPAM.UI and CSPAM.UI.Refresh then
-                CSPAM.UI:Refresh()
-            end
-            MM:Refresh()
-        end
-    end)
+    -- Click Handlers (shared with the LDB data object)
+    button:SetScript("OnClick", HandleClick)
 
     -- Rich Hover Tooltip
     button:SetScript("OnEnter", function(self)
@@ -167,23 +161,7 @@ function MM:Init()
         end
 
         GameTooltip:ClearLines()
-        GameTooltip:AddLine("|cffff3b30C-SPAM|r |cff00e5ffPhalanx Defense|r", 1, 1, 1)
-        GameTooltip:AddLine(" ")
-
-        local armed = (CSPAM.db and CSPAM.db.enabled)
-        local statusText = armed and "|cff00ff00[ARMED & ACTIVE]|r" or "|cffff2020[DISARMED]|r"
-        GameTooltip:AddDoubleLine("Interceptor Status:", statusText, 0.9, 0.9, 0.9, 1, 1, 1)
-
-        local scanned = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalScanned) or 0
-        local filtered = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalFiltered) or 0
-        local pct = scanned > 0 and ((filtered / scanned) * 100) or 0
-        GameTooltip:AddDoubleLine("Airspace Scanned:", string.format("|cffffffff%d|r", scanned), 0.9, 0.9, 0.9, 1, 1, 1)
-        GameTooltip:AddDoubleLine("Threats Intercepted:", string.format("|cffff2020%d|r (|cff00e5ff%.1f%%|r)", filtered, pct), 0.9, 0.9, 0.9, 1, 1, 1)
-
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("|cff00e5ffLeft-Click:|r Toggle Tactical Defense Console", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("|cff00e5ffRight-Click:|r Quick ARM / DISARM toggle", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("|cff00e5ffDrag:|r Reposition Minimap Button", 0.8, 0.8, 0.8)
+        BuildTooltip(GameTooltip)
         GameTooltip:Show()
     end)
 
