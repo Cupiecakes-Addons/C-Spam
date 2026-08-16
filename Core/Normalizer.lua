@@ -106,9 +106,43 @@ function N.ApplyLeetTranslation(text)
     return (text:gsub(".", LEET_MAP))
 end
 
--- Collapse consecutive identical characters (e.g. "traaaash" -> "trash", "trumpppp" -> "trump")
+-- Collapse runs of 3+ identical letters. A gsub with "(%a)%1%1+" cannot do
+-- this: Lua pattern quantifiers do not apply to back-references, so the '+'
+-- is matched as a literal plus sign and the pattern never fires. Returns two
+-- variants — runs reduced to a single letter ("trumpppp" -> "trump") and to
+-- a double ("boooost" -> "boost") — since the target word may legitimately
+-- contain doubled letters.
 function N.CollapseRepeats(text)
-    return (text:gsub("(%a)%1%1+", "%1"))
+    -- Fast path: no letter appears 3+ times in a row (back-references
+    -- without quantifiers are valid pattern items)
+    if not text:find("(%a)%1%1") then
+        return text, text
+    end
+
+    local one, two = {}, {}
+    local n1, n2 = 0, 0
+    local i, len = 1, #text
+    while i <= len do
+        local b = text:byte(i)
+        local j = i + 1
+        while j <= len and text:byte(j) == b do
+            j = j + 1
+        end
+        local runLen = j - i
+        local isLetter = (b >= 97 and b <= 122) or (b >= 65 and b <= 90)
+        local keep1 = (isLetter and runLen >= 3) and 1 or runLen
+        local keep2 = (isLetter and runLen >= 3) and 2 or runLen
+        for _ = 1, keep1 do
+            n1 = n1 + 1
+            one[n1] = b
+        end
+        for _ = 1, keep2 do
+            n2 = n2 + 1
+            two[n2] = b
+        end
+        i = j
+    end
+    return string.char(unpack(one, 1, n1)), string.char(unpack(two, 1, n2))
 end
 
 -- Add every whitespace-separated word of `text` to the token set
@@ -126,7 +160,9 @@ local function AddJoinedRuns(text, set)
         if n >= 3 then
             local joined = table.concat(buf, "", 1, n)
             set[joined] = true
-            set[N.CollapseRepeats(joined)] = true
+            local one, two = N.CollapseRepeats(joined)
+            set[one] = true
+            set[two] = true
         end
         n = 0
     end
@@ -170,10 +206,14 @@ function N.NormalizeMessage(rawMessage, options)
     end
 
     if options.collapseRepeats ~= false then
-        AddTokens(N.CollapseRepeats(cleaned), tokens)
+        local one, two = N.CollapseRepeats(cleaned)
+        AddTokens(one, tokens)
+        AddTokens(two, tokens)
         AddJoinedRuns(cleaned, tokens)
         if leetClean then
-            AddTokens(N.CollapseRepeats(leetClean), leetTokens)
+            local leetOne, leetTwo = N.CollapseRepeats(leetClean)
+            AddTokens(leetOne, leetTokens)
+            AddTokens(leetTwo, leetTokens)
             AddJoinedRuns(leetClean, leetTokens)
         end
     end
