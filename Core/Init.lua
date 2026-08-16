@@ -1,7 +1,7 @@
 local addonName, CSPAM = ...
 _G.CSPAM = CSPAM
 
-CSPAM.Version = "1.5.0"
+CSPAM.Version = "1.6.0"
 local L = CSPAM.L
 
 -- Default Database Schema
