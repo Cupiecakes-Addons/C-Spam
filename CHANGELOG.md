@@ -7,17 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] - 2026-08-15
+
+### Fixed
+- **Normalizer Leetspeak Capture Error**: Fixed Lua `invalid capture index` error in `Core/Normalizer.lua` (`ApplyLeetTranslation`). Replaced multi-loop regex pattern substitution with a fast, safe, single-pass table-driven `text:gsub(".", LEET_MAP)` lookup, completely eliminating Lua `%1`–`%9` regex capture bugs when scanning numbers and symbols in chat.
+
+---
+
 ## [1.0.5] - 2026-08-15
 
 ### Fixed
-- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking to `icon.tga` and `icon.png` (transparent background outside the bronze porthole ring) and integrated GPU `MaskTexture` (`TempPortraitAlphaMask`) in `UI/MinimapButton.lua` to guarantee a 100% round silhouette on all minimap layouts.
+- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture` (`TempPortraitAlphaMask`) in `UI/MinimapButton.lua`.
+- **UI Description Text Wrapping**: Constrained all subtext font strings in the Radar & Config console tab with column-aware widths and `SetWordWrap(true)`.
 
 ---
 
 ## [1.0.4] - 2026-08-15
 
 ### Changed
-- **WoW Retail 12.1.0 (Interface 120100) Compatibility**: Updated `.toc` interface headers to `120100` for client `12.1.0.69299`.
+- **WoW Retail 12.1.0 (Interface 120100) Compatibility**: Updated `.toc` interface headers to `120100` for client build `12.1.0.69299`.
 
 ---
 

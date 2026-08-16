@@ -3,7 +3,7 @@ local addonName, CSPAM = ...
 CSPAM.Normalizer = {}
 local N = CSPAM.Normalizer
 
--- Leetspeak & Symbol translation table
+-- Leetspeak & Symbol translation table (1-byte ASCII replacements)
 local LEET_MAP = {
     ["@"] = "a",
     ["4"] = "a",
@@ -84,17 +84,17 @@ function N.RestoreLinks(text, links)
     end)
 end
 
--- Apply Leetspeak & Homoglyph translation
+-- Apply Leetspeak & Homoglyph translation (Safe O(N) table-driven gsub)
 function N.ApplyLeetTranslation(text)
+    if not text then return "" end
+
     -- 1. Replace Cyrillic / Multibyte homoglyphs
     for glyph, replacement in pairs(HOMOGLYPH_MAP) do
         text = text:gsub(glyph, replacement)
     end
 
-    -- 2. Replace standard 1-char ASCII leetspeak substitutions
-    for char, replacement in pairs(LEET_MAP) do
-        text = text:gsub("%" .. char, replacement)
-    end
+    -- 2. Fast single-pass Leet character translation (bypasses Lua pattern capture index bugs)
+    text = text:gsub(".", LEET_MAP)
 
     return text
 end
@@ -128,7 +128,7 @@ function N.NormalizeMessage(rawMessage, options)
     local leetTokens = nil
     local collapsedClean = nil
 
-    if options.checkLeet then
+    if options.checkLeet ~= false then
         local leetStr = N.ApplyLeetTranslation(lower)
         leetClean = leetStr:gsub("[%p%c]", " "):gsub("%s+", " "):trim()
         leetTokens = {}
@@ -139,7 +139,7 @@ function N.NormalizeMessage(rawMessage, options)
         end
     end
 
-    if options.collapseRepeats then
+    if options.collapseRepeats ~= false then
         collapsedClean = N.CollapseRepeats(cleaned)
         if leetClean then
             local collapsedLeet = N.CollapseRepeats(leetClean)
