@@ -28,7 +28,7 @@ local function FilterChatMessage(chatFrame, event, message, sender, language, ch
         displaySector = channelString or event:gsub("^CHAT_MSG_", "")
     end
 
-    local eval = CSPAM.Engine:EvaluateMessage(message, sender, guid, displaySector)
+    local eval = CSPAM.Engine:EvaluateMessage(message, sender, guid, displaySector, counter)
 
     if eval.shouldFilter then
         if eval.action == "HIDE" then

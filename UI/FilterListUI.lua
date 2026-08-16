@@ -961,7 +961,8 @@ function UI:Refresh()
 
                 row:SetPoint("TOPLEFT", 0, -y)
                 local timeStr = date("%H:%M:%S", entry.timestamp or time())
-                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat"))
+                local repeats = (entry.count and entry.count > 1) and string.format(" |cffffd100(x%d)|r", entry.count) or ""
+                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat", repeats))
                 row.msg:SetText(entry.message or "")
                 row:Show()
                 y = y + 42

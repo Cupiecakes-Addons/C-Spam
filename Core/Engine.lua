@@ -257,31 +257,40 @@ function E:MaskMessage(rawMessage, matchedText, norm)
     return CSPAM.Normalizer.RestoreLinks(masked, links)
 end
 
--- Core Intercept Evaluation Engine
-function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
+-- Record an intercepted message in the rolling log; identical repeats from
+-- the same sender aggregate into the newest entry instead of flooding it
+function E:LogIntercept(result, rawMessage, senderName, channelName)
     local db = CSPAM.db
-    if not db or not db.enabled then
-        return { shouldFilter = false }
-    end
+    if not db.options.logFiltered then return end
 
-    -- IFF Friendly check
-    if self:IsSenderWhitelisted(senderName, senderGUID) then
-        return { shouldFilter = false }
-    end
-
-    db.stats.totalScanned = (db.stats.totalScanned or 0) + 1
-
-    -- Check decision cache for repeat spam payloads
-    local cached = decisionCache[rawMessage]
-    if cached and (time() - cached.time < CACHE_TTL) then
-        if cached.matched then
-            db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
-            return cached.result
-        else
-            return { shouldFilter = false }
+    local log = db.filteredLog
+    local newest = log[1]
+    if newest and newest.message == rawMessage and newest.sender == (senderName or "Unknown") then
+        newest.count = (newest.count or 1) + 1
+        newest.timestamp = time()
+    else
+        table.insert(log, 1, {
+            timestamp = time(),
+            sender = senderName or "Unknown",
+            channel = channelName or "Sector",
+            matched = result.matchedWord or "Signature",
+            category = result.category or "Custom",
+            message = rawMessage,
+        })
+        while #log > (db.options.maxLogEntries or 100) do
+            table.remove(log)
         end
     end
 
+    -- Live UI update if Intercept Log tab is open
+    if CSPAM.UI and CSPAM.UI.OnLogUpdated then
+        CSPAM.UI:OnLogUpdated()
+    end
+end
+
+-- Full (uncached) rule evaluation; caches its verdict
+local function EvaluateFresh(self, rawMessage, senderName, channelName)
+    local db = CSPAM.db
     local norm = CSPAM.Normalizer.NormalizeMessage(rawMessage, db.options)
     local matchedRule = nil
     local matchedWord = nil
@@ -344,29 +353,9 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
         end
     end
 
-    local result = nil
+    local result
     if matchedRule then
         db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
-        
-        -- Record in Intercept Log
-        if db.options.logFiltered then
-            table.insert(db.filteredLog, 1, {
-                timestamp = time(),
-                sender = senderName or "Unknown",
-                channel = channelName or "Sector",
-                matched = matchedWord or (matchedRule and matchedRule.text) or "Signature",
-                category = matchedRule.category or "Custom",
-                message = rawMessage,
-            })
-            while #db.filteredLog > (db.options.maxLogEntries or 100) do
-                table.remove(db.filteredLog)
-            end
-
-            -- Live UI update if Intercept Log tab is open
-            if CSPAM.UI and CSPAM.UI.OnLogUpdated then
-                CSPAM.UI:OnLogUpdated()
-            end
-        end
 
         local action = db.action or "HIDE"
         local maskedText = nil
@@ -381,11 +370,58 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName)
             category = matchedRule.category,
             maskedText = maskedText,
         }
+        self:LogIntercept(result, rawMessage, senderName, channelName)
     else
         result = { shouldFilter = false }
     end
 
     CacheDecision(rawMessage, matchedRule ~= nil, result)
+    return result
+end
 
+-- Chat filters run once per chat frame subscribed to an event; the line ID
+-- is unique per message, so repeat invocations for other chat frames reuse
+-- the first decision without double-counting stats or the log
+local lastLineID = nil
+local lastLineResult = nil
+
+-- Core Intercept Evaluation Engine
+function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName, lineID)
+    local db = CSPAM.db
+    if not db or not db.enabled then
+        return { shouldFilter = false }
+    end
+
+    if lineID and lineID ~= 0 and lineID == lastLineID then
+        return lastLineResult
+    end
+
+    local result
+
+    -- IFF Friendly check
+    if self:IsSenderWhitelisted(senderName, senderGUID) then
+        result = { shouldFilter = false }
+    else
+        db.stats.totalScanned = (db.stats.totalScanned or 0) + 1
+
+        -- Check decision cache for repeat spam payloads
+        local cached = decisionCache[rawMessage]
+        if cached and (time() - cached.time < CACHE_TTL) then
+            if cached.matched then
+                db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
+                self:LogIntercept(cached.result, rawMessage, senderName, channelName)
+                result = cached.result
+            else
+                result = { shouldFilter = false }
+            end
+        else
+            result = EvaluateFresh(self, rawMessage, senderName, channelName)
+        end
+    end
+
+    if lineID and lineID ~= 0 then
+        lastLineID = lineID
+        lastLineResult = result
+    end
     return result
 end
