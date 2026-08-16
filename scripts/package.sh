@@ -5,8 +5,7 @@
 #   Windows: C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\
 #   macOS:   /Applications/World of Warcraft/_retail_/Interface/AddOns/
 #
-# Official releases are built by .github/workflows/release.yml on tag push;
-# this script produces the same layout locally for testing.
+# Build dist/C-Spam.zip locally for distribution and testing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
