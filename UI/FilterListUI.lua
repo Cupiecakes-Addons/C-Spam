@@ -98,119 +98,99 @@ local function CreateElvButton(parent, text, width, height, isRed)
     return btn
 end
 
--- ElvUI Flat Checkbox with label and properly bounded subtext
-local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
-    local check = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    check:SetSize(16, 16)
-    CreateElvBackdrop(check, C_BTN_NORMAL, C_INNER_BORD, false)
+-- ElvUI Flat Toggle (checkbox/radio) with label and properly bounded subtext.
+-- opts: { radio, size, inset, accent, label, subText, onClick, textWidth }
+local function CreateElvToggle(parent, opts)
+    local size = opts.size or 16
+    local inset = opts.inset or 3
+    local accent = opts.accent or C_ACCENT
 
-    local inner = check:CreateTexture(nil, "OVERLAY")
+    local toggle = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    toggle:SetSize(size, size)
+    CreateElvBackdrop(toggle, C_BTN_NORMAL, C_INNER_BORD, false)
+
+    local inner = toggle:CreateTexture(nil, "OVERLAY")
     inner:SetTexture(SOLID_TEX)
-    inner:SetPoint("TOPLEFT", 3, -3)
-    inner:SetPoint("BOTTOMRIGHT", -3, 3)
-    inner:SetColorTexture(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+    inner:SetPoint("TOPLEFT", inset, -inset)
+    inner:SetPoint("BOTTOMRIGHT", -inset, inset)
+    inner:SetColorTexture(accent[1], accent[2], accent[3], 1)
     inner:Hide()
-    check.inner = inner
+    toggle.inner = inner
 
-    check.text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    check.text:SetPoint("LEFT", check, "RIGHT", 7, 0)
-    check.text:SetText(labelText or "")
+    toggle.text = toggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    toggle.text:SetPoint("LEFT", toggle, "RIGHT", 7, 0)
+    toggle.text:SetText(opts.label or "")
 
-    if subText then
+    if opts.subText then
         local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        sub:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 23, -2)
-        local maxW = textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
+        sub:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", size + 7, -2)
+        local maxW = opts.textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
         sub:SetWidth(maxW)
         sub:SetWordWrap(true)
         sub:SetJustifyH("LEFT")
-        sub:SetText(subText)
-        check.sub = sub
+        sub:SetText(opts.subText)
+        toggle.sub = sub
     end
 
     local checked = false
-    function check:SetChecked(val)
+    function toggle:SetChecked(val)
         checked = (val == true)
         if checked then
             inner:Show()
-            self:SetBackdropBorderColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+            self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
         else
             inner:Hide()
             self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
         end
     end
 
-    function check:GetChecked()
+    function toggle:GetChecked()
         return checked
     end
 
-    check:SetScript("OnClick", function(self)
-        self:SetChecked(not checked)
-        if onClick then onClick(checked) end
+    toggle:SetScript("OnClick", function(self)
+        if opts.radio then
+            -- Radio selection state is driven by the group owner via SetChecked
+            if opts.onClick then opts.onClick() end
+        else
+            self:SetChecked(not checked)
+            if opts.onClick then opts.onClick(checked) end
+        end
     end)
 
-    check:SetScript("OnEnter", function(self)
-        self:SetBackdropBorderColor(C_ACCENT[1], C_ACCENT[2], C_ACCENT[3], 1)
+    toggle:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
     end)
 
-    check:SetScript("OnLeave", function(self)
+    toggle:SetScript("OnLeave", function(self)
         if not checked then
             self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
         end
     end)
 
-    return check
+    return toggle
 end
 
--- ElvUI Flat Radio Button with properly bounded subtext
+local function CreateElvCheckBox(parent, labelText, subText, onClick, textWidth)
+    return CreateElvToggle(parent, {
+        label = labelText,
+        subText = subText,
+        onClick = onClick,
+        textWidth = textWidth,
+    })
+end
+
 local function CreateElvRadio(parent, labelText, subText, onClick, textWidth)
-    local radio = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    radio:SetSize(14, 14)
-    CreateElvBackdrop(radio, C_BTN_NORMAL, C_INNER_BORD, false)
-
-    local inner = radio:CreateTexture(nil, "OVERLAY")
-    inner:SetTexture(SOLID_TEX)
-    inner:SetPoint("TOPLEFT", 2, -2)
-    inner:SetPoint("BOTTOMRIGHT", -2, 2)
-    inner:SetColorTexture(C_ACCENT_RED[1], C_ACCENT_RED[2], C_ACCENT_RED[3], 1)
-    inner:Hide()
-    radio.inner = inner
-
-    radio.text = radio:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    radio.text:SetPoint("LEFT", radio, "RIGHT", 7, 0)
-    radio.text:SetText(labelText or "")
-
-    if subText then
-        local sub = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        sub:SetPoint("TOPLEFT", radio, "BOTTOMLEFT", 21, -2)
-        local maxW = textWidth or (parent:GetWidth() > 50 and (parent:GetWidth() - 44) or 285)
-        sub:SetWidth(maxW)
-        sub:SetWordWrap(true)
-        sub:SetJustifyH("LEFT")
-        sub:SetText(subText)
-        radio.sub = sub
-    end
-
-    local checked = false
-    function radio:SetChecked(val)
-        checked = (val == true)
-        if checked then
-            inner:Show()
-            self:SetBackdropBorderColor(C_ACCENT_RED[1], C_ACCENT_RED[2], C_ACCENT_RED[3], 1)
-        else
-            inner:Hide()
-            self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], 1)
-        end
-    end
-
-    function radio:GetChecked()
-        return checked
-    end
-
-    radio:SetScript("OnClick", function(self)
-        if onClick then onClick() end
-    end)
-
-    return radio
+    return CreateElvToggle(parent, {
+        radio = true,
+        size = 14,
+        inset = 2,
+        accent = C_ACCENT_RED,
+        label = labelText,
+        subText = subText,
+        onClick = onClick,
+        textWidth = textWidth,
+    })
 end
 
 -- ElvUI Flat EditBox
