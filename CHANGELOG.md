@@ -7,40 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.6] - 2026-08-15
+## [1.0.7] - 2026-08-15
 
 ### Fixed
-- **Normalizer Leetspeak Capture Error**: Fixed Lua `invalid capture index` error in `Core/Normalizer.lua` (`ApplyLeetTranslation`). Replaced multi-loop regex pattern substitution with a fast, safe, single-pass table-driven `text:gsub(".", LEET_MAP)` lookup, completely eliminating Lua `%1`–`%9` regex capture bugs when scanning numbers and symbols in chat.
+- **Normalizer Leetspeak Capture Error**: Replaced regex pattern substitution with single-pass table lookup (`text:gsub(".", LEET_MAP)`).
+- **WowUp Package Release**: Packaged standalone `CSPAM.zip` release asset for WowUp integration.
 
 ---
 
 ## [1.0.5] - 2026-08-15
 
 ### Fixed
-- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture` (`TempPortraitAlphaMask`) in `UI/MinimapButton.lua`.
-- **UI Description Text Wrapping**: Constrained all subtext font strings in the Radar & Config console tab with column-aware widths and `SetWordWrap(true)`.
+- **Circular Minimap Icon**: Applied anti-aliased circular alpha masking and GPU `MaskTexture` (`TempPortraitAlphaMask`).
+- **UI Description Text Wrapping**: Constrained all subtext font strings in the Radar & Config console tab.
 
 ---
 
 ## [1.0.4] - 2026-08-15
 
 ### Changed
-- **WoW Retail 12.1.0 (Interface 120100) Compatibility**: Updated `.toc` interface headers to `120100` for client build `12.1.0.69299`.
-
----
-
-## [1.0.3] - 2026-08-15
-
-### Fixed
-- **Icon Orientation**: Fixed upside-down orientation across all icon assets.
-
----
-
-## [1.0.1] - 2026-08-15
-
-### Fixed
-- **Settings Persistence**: Fixed SavedVariables persistence on `/reload`.
-- **`contentPanels` Nil Error**: Fixed table scope in `UI/FilterListUI.lua`.
+- **WoW Retail 12.1.0 (Interface 120100) Compatibility**: Updated `.toc` interface headers to `120100`.
 
 ---
 
