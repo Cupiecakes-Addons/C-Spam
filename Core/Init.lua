@@ -102,6 +102,20 @@ local function InitializeAddon()
         CSPAM.db.stats.startTime = time()
     end
 
+    -- Normalize per-character whitelist keys to lowercase short names
+    do
+        local characters = CSPAM.db.whitelist and CSPAM.db.whitelist.characters
+        if characters then
+            local normalized = {}
+            for name in pairs(characters) do
+                if type(name) == "string" then
+                    normalized[(name:match("^([^-]+)") or name):lower()] = true
+                end
+            end
+            CSPAM.db.whitelist.characters = normalized
+        end
+    end
+
     if CSPAM.Engine and CSPAM.Engine.RebuildIndex then
         CSPAM.Engine:RebuildIndex()
     end
@@ -198,6 +212,30 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
         else
             DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_ADD"])
         end
+    elseif cmd == "safe" then
+        local characters = CSPAM.db.whitelist.characters
+        if arg and arg ~= "" then
+            local trimmed = arg:trim()
+            local key = (trimmed:match("^([^-]+)") or trimmed):lower()
+            if characters[key] then
+                characters[key] = nil
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_REMOVED"], key))
+            else
+                characters[key] = true
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_ADDED"], key))
+            end
+        else
+            local names = {}
+            for name in pairs(characters) do
+                names[#names + 1] = name
+            end
+            if #names == 0 then
+                DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_SAFE_EMPTY"])
+            else
+                table.sort(names)
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(L["SLASH_SAFE_LIST"], table.concat(names, ", ")))
+            end
+        end
     elseif cmd == "stats" then
         local scanned = CSPAM.db.stats.totalScanned or 0
         local filtered = CSPAM.db.stats.totalFiltered or 0
@@ -208,6 +246,7 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_OPEN"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_TOGGLE"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_ADD"])
+        DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_SAFE"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_STATS"])
     end
 end

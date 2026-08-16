@@ -18,6 +18,11 @@ L["SLASH_ADDED_WORD"] = "|cffff3b30C-SPAM:|r Threat signature |cffffd100%s|r add
 L["SLASH_WORD_EXISTS"] = "|cffff3b30C-SPAM:|r Signature |cffffd100%s|r is already registered in the matrix."
 L["SLASH_TOGGLE_ON"] = "|cffff3b30C-SPAM:|r Interceptor status: |cff00ff00[ARMED & ACTIVE]|r"
 L["SLASH_TOGGLE_OFF"] = "|cffff3b30C-SPAM:|r Interceptor status: |cffff2020[DISARMED / STANDBY]|r"
+L["SLASH_HELP_SAFE"] = "  |cff00e5ff/cs safe <name>|r - Toggle a character on the IFF safe-ally whitelist"
+L["SLASH_SAFE_ADDED"] = "|cffff3b30C-SPAM:|r |cffffd100%s|r added to IFF safe allies."
+L["SLASH_SAFE_REMOVED"] = "|cffff3b30C-SPAM:|r |cffffd100%s|r removed from IFF safe allies."
+L["SLASH_SAFE_LIST"] = "|cffff3b30C-SPAM:|r IFF safe allies: |cffffd100%s|r"
+L["SLASH_SAFE_EMPTY"] = "|cffff3b30C-SPAM:|r No characters registered as IFF safe allies."
 
 -- Console Tabs
 L["TAB_CUSTOM"] = "Threat Matrix"

@@ -132,70 +132,123 @@ function E:RebuildIndex()
     end
 end
 
--- IFF Check (Identification Friend or Foe)
+-- =============================================================================
+-- IFF (Identification Friend or Foe)
+-- =============================================================================
+-- Whitelist membership is answered from lookup sets rebuilt on roster events,
+-- so the per-message cost is O(1) instead of a full friends/BNet/guild scan
+-- (up to ~1000 API calls per incoming message in a large guild).
+
+local friendSet = {}
+local guildSet = {}
+local groupSet = {}
+
+local function ShortName(name)
+    return (name:match("^([^-]+)") or name):lower()
+end
+
+function E:RebuildFriendSet()
+    table.wipe(friendSet)
+    if C_FriendList and C_FriendList.GetNumFriends then
+        for i = 1, (C_FriendList.GetNumFriends() or 0) do
+            local info = C_FriendList.GetFriendInfoByIndex(i)
+            if info and info.name then
+                friendSet[ShortName(info.name)] = true
+            end
+        end
+    end
+    if BNGetNumFriends and C_BattleNet and C_BattleNet.GetFriendAccountInfo then
+        for i = 1, (BNGetNumFriends() or 0) do
+            local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+            local gameInfo = accountInfo and accountInfo.gameAccountInfo
+            if gameInfo and gameInfo.characterName then
+                friendSet[gameInfo.characterName:lower()] = true
+            end
+        end
+    end
+end
+
+function E:RebuildGuildSet()
+    table.wipe(guildSet)
+    if IsInGuild() then
+        for i = 1, (GetNumGuildMembers() or 0) do
+            local name = GetGuildRosterInfo(i)
+            if name then
+                guildSet[ShortName(name)] = true
+            end
+        end
+    end
+end
+
+function E:RebuildGroupSet()
+    table.wipe(groupSet)
+    if IsInGroup() or IsInRaid() then
+        local numGroup = GetNumGroupMembers()
+        local unitPrefix = IsInRaid() and "raid" or "party"
+        for i = 1, numGroup do
+            local unit = (unitPrefix == "party" and i == numGroup) and "player" or (unitPrefix .. i)
+            local name = UnitName(unit)
+            if name then
+                groupSet[name:lower()] = true
+            end
+        end
+    end
+end
+
+local rosterFrame = CreateFrame("Frame")
+rosterFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+rosterFrame:RegisterEvent("FRIENDLIST_UPDATE")
+rosterFrame:RegisterEvent("BN_FRIEND_INFO_CHANGED")
+rosterFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
+rosterFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
+rosterFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+rosterFrame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_ENTERING_WORLD" then
+        E:RebuildFriendSet()
+        E:RebuildGuildSet()
+        E:RebuildGroupSet()
+        -- Request fresh rosters; the update events above fire when they arrive
+        if C_FriendList and C_FriendList.ShowFriends then
+            C_FriendList.ShowFriends()
+        end
+        if C_GuildInfo and C_GuildInfo.GuildRoster then
+            C_GuildInfo.GuildRoster()
+        end
+    elseif event == "FRIENDLIST_UPDATE" or event == "BN_FRIEND_INFO_CHANGED" then
+        E:RebuildFriendSet()
+    elseif event == "GUILD_ROSTER_UPDATE" or event == "PLAYER_GUILD_UPDATE" then
+        E:RebuildGuildSet()
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        E:RebuildGroupSet()
+    end
+end)
+
 function E:IsSenderWhitelisted(senderName, senderGUID)
     if not senderName or senderName == "" then return false end
     local db = CSPAM.db
     if not db or not db.whitelist then return false end
 
+    local key = ShortName(senderName)
+
     -- Self is always friendly
     local playerName = UnitName("player")
-    if senderName == playerName or senderName:match("^" .. playerName .. "%-") then
+    if playerName and key == playerName:lower() then
         return true
     end
 
-    -- 1. Friends list (BNet & Character)
     if db.whitelist.friends then
-        if C_FriendList and C_FriendList.IsFriend then
-            if senderGUID and C_FriendList.IsFriend(senderGUID) then return true end
+        if senderGUID and C_FriendList and C_FriendList.IsFriend and C_FriendList.IsFriend(senderGUID) then
+            return true
         end
-        local numFriends = C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
-        for i = 1, numFriends do
-            local info = C_FriendList.GetFriendInfoByIndex(i)
-            if info and info.name and (info.name == senderName or senderName:match("^" .. info.name .. "%-")) then
-                return true
-            end
-        end
-        if BNGetNumFriends then
-            local numBNet = BNGetNumFriends()
-            for i = 1, numBNet do
-                local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
-                if accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.characterName then
-                    local cName = accountInfo.gameAccountInfo.characterName
-                    if cName == senderName or senderName:match("^" .. cName .. "%-") then
-                        return true
-                    end
-                end
-            end
-        end
+        if friendSet[key] then return true end
     end
 
-    -- 2. Guild Members
-    if db.whitelist.guild and IsInGuild() then
-        local numGuild = GetNumGuildMembers()
-        for i = 1, numGuild do
-            local name = GetGuildRosterInfo(i)
-            if name and (name == senderName or name:match("^" .. senderName .. "%-") or senderName:match("^" .. name .. "%-")) then
-                return true
-            end
-        end
-    end
+    if db.whitelist.guild and guildSet[key] then return true end
+    if db.whitelist.party and groupSet[key] then return true end
 
-    -- 3. Party & Raid Members
-    if db.whitelist.party and (IsInGroup() or IsInRaid()) then
-        local numGroup = GetNumGroupMembers()
-        local unitPrefix = IsInRaid() and "raid" or "party"
-        for i = 1, numGroup do
-            local unit = (unitPrefix == "party" and i == numGroup) and "player" or (unitPrefix .. i)
-            local name, realm = UnitName(unit)
-            if name then
-                local fullName = realm and (name .. "-" .. realm) or name
-                if fullName == senderName or name == senderName then
-                    return true
-                end
-            end
-        end
-    end
+    -- Per-character whitelist (managed via '/cs safe <name>')
+    local characters = db.whitelist.characters
+    if characters and characters[key] then return true end
 
     return false
 end
