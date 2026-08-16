@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] - 2026-08-15
+
+### Fixed
+- **Radar & Config Card Heights & Padding**: Increased vertical padding and height on Monitored Airspace (Card 3) from `115px` to `142px` and expanded bottom row spacing to ensure multi-line channel descriptions (like Direct Whispers) never clip or touch card borders.
+
+---
+
 ## [1.0.7] - 2026-08-15
 
 ### Fixed
 - **Normalizer Leetspeak Capture Error**: Replaced regex pattern substitution with single-pass table lookup (`text:gsub(".", LEET_MAP)`).
-- **WowUp Package Release**: Packaged standalone `CSPAM.zip` release asset for WowUp integration.
 
 ---
 
