@@ -184,10 +184,6 @@ local function InitializeAddon()
         CSPAM.UI:Init()
     end
 
-    if CSPAM.Minimap and CSPAM.Minimap.Init then
-        CSPAM.Minimap:Init()
-    end
-
     if CSPAM.Config and CSPAM.Config.Register then
         CSPAM.Config:Register()
     end
@@ -208,6 +204,12 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         InitializeAddon()
         if CSPAM.Events and CSPAM.Events.RegisterFilters then
             CSPAM.Events:RegisterFilters()
+        end
+        -- The minimap button initializes at PLAYER_LOGIN (not ADDON_LOADED)
+        -- so LibStub/LibDBIcon provided by addons that load after C-Spam
+        -- are visible when we probe for them
+        if CSPAM.Minimap and CSPAM.Minimap.Init then
+            CSPAM.Minimap:Init()
         end
         if CSPAM.Minimap and CSPAM.Minimap.Refresh then
             CSPAM.Minimap:Refresh()

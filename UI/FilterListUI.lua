@@ -273,7 +273,7 @@ function UI:Init()
     local iconLogo = headerBar:CreateTexture(nil, "OVERLAY")
     iconLogo:SetSize(20, 20)
     iconLogo:SetPoint("LEFT", 6, 0)
-    iconLogo:SetTexture("Interface\\AddOns\\CSPAM\\Media\\icon.tga")
+    iconLogo:SetTexture("Interface\\AddOns\\" .. addonName .. "\\Media\\icon.tga")
 
     local title = headerBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("LEFT", iconLogo, "RIGHT", 7, 0)
