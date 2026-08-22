@@ -11,6 +11,77 @@ local contentPanels = {}
 local tabButtons = {}
 
 -- =============================================================================
+-- INTERCEPT LOG AGE COLUMN
+-- The age column reads relative ("4m"), so it has to advance under its own
+-- power: UI:Refresh() only runs on an intercept or a tab change, and an age
+-- that silently freezes at "4m" for an hour is worse than no age at all.
+-- The ticker repaints only the age FontStrings of the visible rows, and only
+-- while the Intercept Log tab is actually on screen.
+-- =============================================================================
+
+local ageTicker = nil
+
+local function SetRowAge(row, now)
+    if not (row.age and row.entryTime) then return end
+    local text, r, g, b = CSPAM.FormatAge(row.entryTime, now)
+    -- The colour is a pure function of the bucket the text came from, so an
+    -- unchanged string means an unchanged row; skip the SetText churn.
+    if text == row.ageText then return end
+    row.ageText = text
+    row.age:SetText(text)
+    row.age:SetTextColor(r, g, b)
+end
+
+-- Single "when did the last one land" readout in the log header bar
+local function UpdateLastHit(now)
+    local p3 = contentPanels[3]
+    if not (p3 and p3.lastHit) then return end
+
+    local log = CSPAM.db and CSPAM.db.filteredLog
+    local newest = log and log[1]
+    if not newest then
+        p3.lastHit:SetText("")
+        return
+    end
+
+    local text, r, g, b = CSPAM.FormatAge(newest.timestamp, now)
+    if text == "now" then
+        p3.lastHit:SetText("LAST INTERCEPT JUST NOW")
+    else
+        p3.lastHit:SetText("LAST INTERCEPT " .. text .. " AGO")
+    end
+    p3.lastHit:SetTextColor(r, g, b)
+end
+
+local function StopAgeTicker()
+    if ageTicker then
+        ageTicker:Cancel()
+        ageTicker = nil
+    end
+end
+
+local function StartAgeTicker()
+    if ageTicker then return end
+    ageTicker = C_Timer.NewTicker(1, function()
+        if not (mainFrame and mainFrame:IsShown() and activeTab == 3) then
+            StopAgeTicker()
+            return
+        end
+
+        local now = time()
+        UpdateLastHit(now)
+
+        local parent = contentPanels[3] and contentPanels[3].logContent
+        if not (parent and parent.rows) then return end
+        for _, row in ipairs(parent.rows) do
+            if row:IsShown() then
+                SetRowAge(row, now)
+            end
+        end
+    end)
+end
+
+-- =============================================================================
 -- ELVUI AESTHETIC DESIGN SYSTEM & WIDGET FACTORY
 -- =============================================================================
 
@@ -258,6 +329,12 @@ function UI:Init()
     mainFrame:RegisterForDrag("LeftButton")
     mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
     mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
+    mainFrame:SetScript("OnHide", StopAgeTicker)
+    -- UI:Toggle() reopens straight into the last active tab without going
+    -- through ShowTab, so the ticker has to be revived here too
+    mainFrame:SetScript("OnShow", function()
+        if activeTab == 3 then StartAgeTicker() end
+    end)
     mainFrame:SetFrameStrata("HIGH")
     mainFrame:SetClampedToScreen(true)
     CreateElvBackdrop(mainFrame, C_BG_DARK, { 0, 0, 0, 1 }, true)
@@ -341,6 +418,11 @@ function UI:Init()
                     tabButtons[i].text:SetTextColor(0.7, 0.7, 0.7, 1)
                 end
             end
+        end
+        if tabIndex == 3 then
+            StartAgeTicker()
+        else
+            StopAgeTicker()
         end
         UI:Refresh()
     end
@@ -553,6 +635,11 @@ function UI:Init()
         UI:Refresh()
     end)
     SetElvTooltip(purgeBtn, "Purge Telemetry", "Clears all recorded intercept logs from addon memory.")
+
+    local lastHit = logHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lastHit:SetPoint("RIGHT", purgeBtn, "LEFT", -12, 0)
+    lastHit:SetJustifyH("RIGHT")
+    p3.lastHit = lastHit
 
     local logScrollFrame = CreateFrame("ScrollFrame", "CSPAMLogScrollFrame", p3, "UIPanelScrollFrameTemplate")
     logScrollFrame:SetPoint("TOPLEFT", 10, -42)
@@ -909,6 +996,7 @@ function UI:Refresh()
         local y = 0
         local rowIndex = 0
 
+        local now = time()
         local logEntries = CSPAM.db and CSPAM.db.filteredLog
         if logEntries and #logEntries > 0 then
             if p3.emptyMsg then p3.emptyMsg:Hide() end
@@ -920,8 +1008,17 @@ function UI:Refresh()
                     row:SetSize(656, 40)
                     CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
+                    row.age = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                    row.age:SetPoint("TOPRIGHT", -8, -4)
+                    row.age:SetJustifyH("RIGHT")
+
                     row.header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                     row.header:SetPoint("TOPLEFT", 8, -4)
+                    -- Bounded on the right by the age column: a long sender or
+                    -- channel name truncates instead of running underneath it
+                    row.header:SetPoint("RIGHT", row.age, "LEFT", -6, 0)
+                    row.header:SetJustifyH("LEFT")
+                    row.header:SetWordWrap(false)
 
                     row.msg = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                     row.msg:SetPoint("TOPLEFT", 8, -20)
@@ -935,10 +1032,13 @@ function UI:Refresh()
                 row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                 row:SetPoint("TOPLEFT", 0, -y)
-                local timeStr = date("%H:%M:%S", entry.timestamp or time())
+                local timeStr = date("%H:%M:%S", entry.timestamp or now)
                 local repeats = (entry.count and entry.count > 1) and string.format(" |cffffd100(x%d)|r", entry.count) or ""
                 row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat", repeats))
                 row.msg:SetText(entry.message or "")
+                row.entryTime = entry.timestamp
+                row.ageText = nil -- pooled row: force a repaint for its new entry
+                SetRowAge(row, now)
                 row:Show()
                 y = y + 42
             end
@@ -946,6 +1046,7 @@ function UI:Refresh()
             if p3.emptyMsg then p3.emptyMsg:Show() end
         end
 
+        UpdateLastHit(now)
         parent:SetHeight(math.max(y, 380))
 
     elseif activeTab == 4 then

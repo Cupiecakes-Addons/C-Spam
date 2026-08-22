@@ -73,6 +73,37 @@ local function ClearActiveChatEditBox(editBox)
 end
 CSPAM.ClearActiveChatEditBox = ClearActiveChatEditBox
 
+-- Relative age of a log entry, rendered compactly in a single unit:
+-- "now" / "12s" / "4m" / "3h" / "2d". Entries younger than AGE_FRESH_SECONDS
+-- come back green so a live intercept stands out; everything older uses the
+-- same grey as the absolute timestamp beside it.
+local AGE_FRESH_SECONDS = 60
+local C_AGE_FRESH = { 0.10, 0.95, 0.25 }
+local C_AGE_STALE = { 0.53, 0.53, 0.53 } -- matches the |cff888888 timestamp
+
+function CSPAM.FormatAge(timestamp, now)
+    local age = (now or time()) - (timestamp or 0)
+    -- SavedVariables copied between machines (or a corrected clock) can put
+    -- an entry in the future; treat that as brand new rather than "-3h"
+    if age < 0 then age = 0 end
+
+    local color = (age < AGE_FRESH_SECONDS) and C_AGE_FRESH or C_AGE_STALE
+    local text
+    if age < 10 then
+        text = "now"
+    elseif age < 60 then
+        text = age .. "s"
+    elseif age < 3600 then
+        text = math.floor(age / 60) .. "m"
+    elseif age < 86400 then
+        text = math.floor(age / 3600) .. "h"
+    else
+        text = math.floor(age / 86400) .. "d"
+    end
+
+    return text, color[1], color[2], color[3]
+end
+
 -- Master ARM/DISARM used by the slash command, console button, and minimap
 function CSPAM:ToggleEnabled(silent)
     CSPAM.db.enabled = not CSPAM.db.enabled
