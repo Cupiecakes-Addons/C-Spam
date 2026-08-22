@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.7.0] - 2026-08-21
 
 ### Added
 - **Relative age on every intercepted message.** The Intercept Log now shows how long ago each entry landed — `now`, `12s`, `4m`, `3h`, `2d` — in a column on the right of the row, ticking once per second while the tab is open. Anything under a minute old is green so a live intercept stands out; older entries are grey. The absolute `HH:MM:SS` clock still leads the line and is unchanged. Because the log persists between sessions, a row stamped `22:06` could just as easily be from last night as from a minute ago — the age column is what tells the two apart.

@@ -1,7 +1,7 @@
 local addonName, CSPAM = ...
 _G.CSPAM = CSPAM
 
-CSPAM.Version = "1.6.2"
+CSPAM.Version = "1.7.0"
 
 -- Intercepts counted since this UI session started. Not persisted: a /reload
 -- or a logout resets it, while db.stats.totalFiltered keeps the running total.
