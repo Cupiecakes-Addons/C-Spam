@@ -138,24 +138,39 @@ local function CreateElvBackdrop(frame, bgCol, borderCol, isTransparent)
 end
 
 -- Attach Rich ElvUI Hover Tooltip
+local function RenderElvTooltip(frame)
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine("|cff00e5ff" .. (frame.ttTitle or "") .. "|r", 1, 1, 1)
+    if frame.ttDesc then
+        GameTooltip:AddLine(frame.ttDesc, 0.9, 0.9, 0.9, true)
+    end
+    if frame.ttExample then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("|cffffd100Example Behavior:|r", 1, 0.82, 0)
+        GameTooltip:AddLine(frame.ttExample, 0.8, 0.8, 0.8, true)
+    end
+    GameTooltip:Show()
+end
+
+-- The tooltip text lives on the frame rather than in the handler's closure,
+-- for two reasons. HookScript appends: re-pointing a tooltip the old way
+-- stacked another OnEnter (and OnLeave) handler on the frame every time, so
+-- the mode button accumulated one more per click for the life of the session.
+-- And because the text was only assembled inside OnEnter, clicking a button
+-- already under the cursor left the visible tooltip showing the previous
+-- mode until you moved the mouse away and back. Hooking once and repainting
+-- in place when this frame already owns the tooltip fixes both.
 local function SetElvTooltip(frame, title, desc, example)
-    frame:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine("|cff00e5ff" .. title .. "|r", 1, 1, 1)
-        if desc then
-            GameTooltip:AddLine(desc, 0.9, 0.9, 0.9, true)
-        end
-        if example then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cffffd100Example Behavior:|r", 1, 0.82, 0)
-            GameTooltip:AddLine(example, 0.8, 0.8, 0.8, true)
-        end
-        GameTooltip:Show()
-    end)
-    frame:HookScript("OnLeave", function(self)
-        GameTooltip:Hide()
-    end)
+    frame.ttTitle, frame.ttDesc, frame.ttExample = title, desc, example
+
+    if not frame.ttHooked then
+        frame.ttHooked = true
+        frame:HookScript("OnEnter", RenderElvTooltip)
+        frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    elseif GameTooltip:IsShown() and GameTooltip:GetOwner() == frame then
+        RenderElvTooltip(frame)
+    end
 end
 
 -- ElvUI Flat Button

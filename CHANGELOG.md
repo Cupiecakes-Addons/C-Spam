@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`LAST INTERCEPT` readout in the log header**, beside Purge Telemetry, so the time since the most recent hit is readable without scanning the rows.
 - **Running intercept tallies in the console header.** The title bar now carries `INTERCEPTED <n> ALL-TIME · <n> SESSION`, visible from every tab and climbing live as messages are caught. The all-time figure is the existing persisted `totalFiltered`, so it reflects real history rather than starting from zero; the session figure is in-memory and resets on `/reload`. `/cs stats` reports the session count too. Both tallies are incremented at a single seam covering the fresh-evaluation and cache-hit paths, and keep counting when the intercept log is disabled.
 
+### Fixed
+- **Tooltips now repaint while the cursor is still on the button.** Clicking the mode selector in Threat Matrix cycled the mode but left the visible tooltip describing the *previous* mode until you moved the mouse away and back. The tooltip text was only assembled inside `OnEnter`, and because `SetElvTooltip` registered it with `HookScript` (which appends rather than replaces), every click also stacked another `OnEnter`/`OnLeave` handler on the button for the rest of the session. Tooltip content now lives on the frame, is hooked exactly once, and repaints in place when the frame already owns the tooltip.
+
 ### Changed
 - The log header line (timestamp, channel, sender, target) is now bounded by the age column, so a long sender or channel name truncates instead of running the full width of the row.
 
