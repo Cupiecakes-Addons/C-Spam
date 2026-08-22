@@ -53,6 +53,25 @@ local function UpdateLastHit(now)
     p3.lastHit:SetTextColor(r, g, b)
 end
 
+-- Running intercept tallies in the header bar. totalFiltered is persisted in
+-- SavedVariables so it survives logouts (the "since install" number); the
+-- session figure is in-memory only.
+local function FormatCount(n)
+    n = n or 0
+    if BreakUpLargeNumbers then
+        return BreakUpLargeNumbers(n)
+    end
+    return tostring(n)
+end
+
+local function UpdateStatsReadout()
+    if not (mainFrame and mainFrame.statsText) then return end
+    local total = (CSPAM.db and CSPAM.db.stats and CSPAM.db.stats.totalFiltered) or 0
+    mainFrame.statsText:SetText(string.format(
+        "|cff888888INTERCEPTED|r |cffff2020%s|r |cff888888ALL-TIME|r  |cff555555\194\183|r  |cffff2020%s|r |cff888888SESSION|r",
+        FormatCount(total), FormatCount(CSPAM.sessionFiltered)))
+end
+
 local function StopAgeTicker()
     if ageTicker then
         ageTicker:Cancel()
@@ -390,6 +409,13 @@ function UI:Init()
         "• |cff00ff00ARMED|r: Actively scans, intercepts, and removes matching chat threats.\n" ..
         "• |cffff2020DISARMED|r: Interceptor is in standby; chat passes through unaltered.")
     mainFrame.masterBtn = masterBtn
+
+    local statsText = headerBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    statsText:SetPoint("RIGHT", masterBtn, "LEFT", -12, 0)
+    statsText:SetPoint("LEFT", ver, "RIGHT", 12, 0)
+    statsText:SetJustifyH("RIGHT")
+    statsText:SetWordWrap(false)
+    mainFrame.statsText = statsText
 
     -- Tabs Container
     local tabNames = {
@@ -902,6 +928,13 @@ function UI:OnLogUpdated()
     end)
 end
 
+-- Called by Engine.lua on every intercept, independent of the log tab and of
+-- the logFiltered option, so the tallies keep climbing on whichever tab is up
+function UI:OnStatsUpdated()
+    if not (mainFrame and mainFrame:IsShown()) then return end
+    UpdateStatsReadout()
+end
+
 function UI:Refresh()
     if not mainFrame or not mainFrame:IsShown() then return end
 
@@ -913,6 +946,8 @@ function UI:Refresh()
         mainFrame.masterBtn:SetText("|cffff2020DISARMED|r")
         mainFrame.masterBtn:SetBackdropBorderColor(0.8, 0.1, 0.1, 1)
     end
+
+    UpdateStatsReadout()
 
     if activeTab == 1 then
         local p1 = contentPanels[1]

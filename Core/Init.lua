@@ -2,6 +2,10 @@ local addonName, CSPAM = ...
 _G.CSPAM = CSPAM
 
 CSPAM.Version = "1.6.2"
+
+-- Intercepts counted since this UI session started. Not persisted: a /reload
+-- or a logout resets it, while db.stats.totalFiltered keeps the running total.
+CSPAM.sessionFiltered = 0
 local L = CSPAM.L
 
 -- Default Database Schema
@@ -301,7 +305,7 @@ SlashCmdList["CSPAM"] = function(msg, editBox)
         local scanned = CSPAM.db.stats.totalScanned or 0
         local filtered = CSPAM.db.stats.totalFiltered or 0
         local pct = scanned > 0 and ((filtered / scanned) * 100) or 0
-        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cffff3b30C-SPAM Telemetry:|r Airspace Scanned: |cffffffff%d|r | Threats Intercepted: |cffff2020%d|r (|cff00e5ff%.1f%%|r Intercept Rate)", scanned, filtered, pct))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cffff3b30C-SPAM Telemetry:|r Airspace Scanned: |cffffffff%d|r | Threats Intercepted: |cffff2020%d|r (|cff00e5ff%.1f%%|r Intercept Rate) | This Session: |cffff2020%d|r", scanned, filtered, pct, CSPAM.sessionFiltered or 0))
     else
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_HEADER"])
         DEFAULT_CHAT_FRAME:AddMessage(L["SLASH_HELP_OPEN"])

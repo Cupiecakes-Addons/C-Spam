@@ -310,6 +310,18 @@ function E:MaskMessage(rawMessage, matchedText, norm)
     return CSPAM.Normalizer.RestoreLinks(masked, links)
 end
 
+-- Both the fresh-evaluation path and the cache-hit path funnel through here,
+-- so the lifetime and session tallies can never drift apart. sessionFiltered
+-- is deliberately not in db: it lives and dies with the UI session, and a
+-- /reload starts it over.
+local function CountIntercept(db)
+    db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
+    CSPAM.sessionFiltered = (CSPAM.sessionFiltered or 0) + 1
+    if CSPAM.UI and CSPAM.UI.OnStatsUpdated then
+        CSPAM.UI:OnStatsUpdated()
+    end
+end
+
 -- Record an intercepted message in the rolling log; identical repeats from
 -- the same sender aggregate into the newest entry instead of flooding it
 function E:LogIntercept(result, rawMessage, senderName, channelName)
@@ -408,7 +420,7 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
 
     local result
     if matchedRule then
-        db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
+        CountIntercept(db)
 
         local action = db.action or "HIDE"
         local maskedText = nil
@@ -461,7 +473,7 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName, line
         local cached = decisionCache[rawMessage]
         if cached and (time() - cached.time < CACHE_TTL) then
             if cached.matched then
-                db.stats.totalFiltered = (db.stats.totalFiltered or 0) + 1
+                CountIntercept(db)
                 self:LogIntercept(cached.result, rawMessage, senderName, channelName)
                 result = cached.result
             else
