@@ -29,7 +29,7 @@ loadaddon("Core/Engine.lua")
 CSPAM.db = {
     enabled = true,
     action = "HIDE",
-    packs = { politics = true, boosting = true, toxicity = true },
+    packs = { politics = true, boosting = true, toxicity = true, nsfw = true },
     customWords = {
         { text = "link", mode = "CONTAINS", enabled = true },
         { text = "gold", mode = "EXACT", enabled = true },
@@ -116,6 +116,48 @@ check("IsValidMode rejects HTTPS / accepts phrase",
     E:IsValidMode("HTTPS") == false and E:IsValidMode("phrase") == true)
 check("'newts moved' passes ('wts m+' anchored)",
     eval("newts moved into my garden").shouldFilter == false)
+
+-- NSFW pack: the goon family is EXACT, so it matches whole tokens only
+check("'gooning' fires", eval("anyone else gooning tonight").shouldFilter == true)
+check("'gooner' fires", eval("what a gooner").shouldFilter == true)
+check("'goon' alone fires", eval("straight up goon behavior").shouldFilter == true)
+check("stretched 'goooooning' fires (repeat collapse)",
+    eval("bro is goooooning").shouldFilter == true)
+check("leet 'g00ning' fires", eval("he is g00ning again").shouldFilter == true)
+-- Substring safety: EXACT is a token-set lookup, not a find()
+check("'dragoon' passes (not a goon token)",
+    eval("my dragoon transmog looks great").shouldFilter == false)
+check("'lagoon' passes (not a goon token)",
+    eval("meet me at the lagoon in vashjir").shouldFilter == false)
+
+-- Masturbation stems are CONTAINS, so the whole family is two rules
+check("'masturbating' fires via stem", eval("stop masturbating in trade").shouldFilter == true)
+check("'masturbation' fires via stem", eval("no masturbation talk please").shouldFilter == true)
+check("misspelled 'masterbate' fires", eval("he said masterbate lol").shouldFilter == true)
+
+-- NSFW pack, wider signature set. CONTAINS stems catch whole families...
+check("'motherfucker' fires via 'fuck' stem", eval("motherfucker that was close").shouldFilter == true)
+check("'bullshit' fires via 'shit' stem", eval("this is bullshit honestly").shouldFilter == true)
+check("'dickhead' fires", eval("he is a total dickhead").shouldFilter == true)
+check("'onlyfans' fires", eval("check my onlyfans link").shouldFilter == true)
+check("phrase 'deez nuts' fires", eval("hit em with the deez nuts joke").shouldFilter == true)
+-- ...while short anatomical terms stay EXACT so they cannot match inside words
+check("'class/assist/pass' pass ('ass' is EXACT)",
+    eval("great class, nice assist, pass me the flag").shouldFilter == false)
+check("'titan/title' pass ('tits' is EXACT)",
+    eval("titan forged title on that item").shouldFilter == false)
+check("'document/cucumber' pass ('cum' is EXACT)",
+    eval("documented accumulation, cucumber salad").shouldFilter == false)
+check("'coarse/sparse/parse' pass ('arse' is EXACT)",
+    eval("coarse hoarse sparse parse").shouldFilter == false)
+check("'analysis/analyze' pass ('anus' is EXACT)",
+    eval("running analysis to analyze the logs").shouldFilter == false)
+check("'scatter shot' passes ('scat' is EXACT)",
+    eval("scatter shot then disengage").shouldFilter == false)
+check("'cockatrice/peacock' pass ('cock' is EXACT)",
+    eval("cockatrice eye and a peacock feather").shouldFilter == false)
+check("'buttress' passes ('butt' is EXACT)",
+    eval("buttress the wall on the left").shouldFilter == false)
 
 print(failures == 0 and "ALL PASS" or (failures .. " FAILURES"))
 os.exit(failures == 0 and 0 or 1)
