@@ -10,6 +10,7 @@ local searchFilter = ""
 local contentPanels = {}
 UI.contentPanels = contentPanels
 local tabButtons = {}
+UI.tabButtons = tabButtons
 
 -- =============================================================================
 -- INTERCEPT LOG AGE COLUMN
@@ -605,6 +606,17 @@ function UI:Init()
     local scrollFrame = CreateFrame("ScrollFrame", "CSPAMCustomScrollFrame", p1, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", 10, -64)
     scrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local maxScroll = self:GetVerticalScrollRange()
+        local step = 26
+        if delta > 0 then
+            self:SetVerticalScroll(math.max(0, cur - step))
+        else
+            self:SetVerticalScroll(math.min(maxScroll, cur + step))
+        end
+    end)
 
     local scrollContent = CreateFrame("Frame", nil, scrollFrame)
     scrollContent:SetSize(660, 400)
@@ -904,6 +916,18 @@ function UI:Init()
     local logScrollFrame = CreateFrame("ScrollFrame", "CSPAMLogScrollFrame", p3, "UIPanelScrollFrameTemplate")
     logScrollFrame:SetPoint("TOPLEFT", 10, -42)
     logScrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
+    logScrollFrame:EnableMouseWheel(true)
+    logScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local maxScroll = self:GetVerticalScrollRange()
+        local step = 42
+        if delta > 0 then
+            self:SetVerticalScroll(math.max(0, cur - step))
+        else
+            self:SetVerticalScroll(math.min(maxScroll, cur + step))
+        end
+    end)
+    p3.scrollFrame = logScrollFrame
 
     local logContent = CreateFrame("Frame", nil, logScrollFrame)
     logContent:SetSize(660, 420)
@@ -1297,16 +1321,52 @@ function UI:Refresh()
                     row.msg:SetWidth(640)
                     row.msg:SetJustifyH("LEFT")
 
+                    row:SetHyperlinksEnabled(true)
+                    row:SetScript("OnHyperlinkClick", function(self, link, text, button)
+                        pcall(SetItemRef, link, text, button, self)
+                    end)
+                    row:SetScript("OnHyperlinkEnter", function(self, link, text)
+                        local linkType = link and link:match("^([^:]+)")
+                        if linkType and linkType ~= "player" and linkType ~= "channel" then
+                            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+                            local ok = pcall(function() GameTooltip:SetHyperlink(link) end)
+                            if ok then
+                                GameTooltip:Show()
+                            else
+                                GameTooltip:Hide()
+                            end
+                        end
+                    end)
+                    row:SetScript("OnHyperlinkLeave", function(self)
+                        GameTooltip:Hide()
+                    end)
+
+                    row:EnableMouseWheel(true)
+                    row:SetScript("OnMouseWheel", function(self, delta)
+                        local scroll = p3.scrollFrame
+                        if scroll and scroll:GetScript("OnMouseWheel") then
+                            scroll:GetScript("OnMouseWheel")(scroll, delta)
+                        end
+                    end)
+
                     parent.rows[rowIndex] = row
                 end
 
                 local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
                 row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
+                row:ClearAllPoints()
                 row:SetPoint("TOPLEFT", 0, -y)
                 local timeStr = date("%H:%M:%S", entry.timestamp or now)
                 local repeats = (entry.count and entry.count > 1) and string.format(" |cffffd100(x%d)|r", entry.count) or ""
-                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r |cffffffff%s|r (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", entry.sender or "Unknown", entry.matched or "Threat", repeats))
+                local sender = entry.sender or "Unknown"
+                local senderDisplay
+                if sender ~= "Unknown" and not sender:find("|H") then
+                    senderDisplay = string.format("|Hplayer:%s|h|cffffffff%s|r|h", sender, sender)
+                else
+                    senderDisplay = string.format("|cffffffff%s|r", sender)
+                end
+                row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r %s (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", senderDisplay, entry.matched or "Threat", repeats))
                 row.msg:SetText(entry.message or "")
                 row.entryTime = entry.timestamp
                 row.ageText = nil -- pooled row: force a repaint for its new entry
