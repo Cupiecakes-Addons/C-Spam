@@ -5,6 +5,17 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-09-12
+
+### Added
+- **Interactive Hyperlinks in Intercept Log**: Full native chat link integration on blocked messages in the Intercept Log telemetry tab:
+  - **Hover Tooltips**: Hovering over any item, mount, achievement, dungeon keystone, spell, or quest link immediately displays its game tooltip at the cursor.
+  - **Click Integration (`SetItemRef`)**: Left-clicking an achievement or quest link opens the corresponding UI; Ctrl-clicking items/mounts opens the 3D Dressing Room preview; Shift-clicking pastes the link into active chat/macros.
+  - **Clickable Player Names**: Sender names in the telemetry header are now formatted as player links (`|Hplayer:...|h`), allowing instant whisper or player context menu interactions on click.
+- **Mouse Wheel Scroll Integration**: Enabled smooth mouse wheel scrolling across all scrollable panels (Threat Matrix, Defense Pack details, and Intercept Log), with event forwarding so wheeling directly over message rows scrolls seamlessly.
+
+---
+
 ## [1.7.3] - 2026-09-12
 
 ### Fixed
