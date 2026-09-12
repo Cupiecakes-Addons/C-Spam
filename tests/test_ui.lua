@@ -78,6 +78,8 @@ local function mockFrame(frameType, name, parent, template)
     function f:SetHighlightFontObject(fo) end
     function f:SetDisabledFontObject(fo) end
     function f:SetMaxLetters(n) end
+    function f:SetHyperlinksEnabled(b) self._hyperlinks = b end
+    function f:GetHyperlinksEnabled() return self._hyperlinks end
     return f
 end
 
@@ -88,7 +90,19 @@ function GameTooltip:SetOwner(o, a) self._owner = o end
 function GameTooltip:GetOwner() return self._owner end
 function GameTooltip:ClearLines() self._lines = {} end
 function GameTooltip:AddLine(t) table.insert(self._lines, t) end
+function GameTooltip:SetHyperlink(link) self._hyperlink = link end
 
+local itemRefCalls = {}
+SetItemRef = function(link, text, button, frame)
+    table.insert(itemRefCalls, { link = link, text = text, button = button, frame = frame })
+end
+
+C_Timer = {
+    After = function(delay, fn) fn() end,
+    NewTicker = function(interval, fn)
+        return { Cancel = function() end }
+    end,
+}
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, msg) end }
 UISpecialFrames = {}
 SlashCmdList = {}
@@ -171,5 +185,57 @@ print("Testing HideDetail()...")
 p2.HideDetail()
 assert(p2.cardsView:IsShown(), "cardsView should be shown after HideDetail")
 assert(not p2.detailView:IsShown(), "detailView should be hidden after HideDetail")
+
+print("Testing Tab 3 Intercept Log hyperlinks...")
+table.insert(CSPAM.db.filteredLog, {
+    timestamp = os.time(),
+    sender = "Cilette-MoonGuard",
+    channel = "Trade",
+    matched = "ksh",
+    category = "Boosting",
+    message = "WTS |cffa335ee|Hitem:228514:0:0:0:0:0:0:0|h[Ashes of Belo'ren]|h|r and |cffffff00|Hachievement:1234:0:0:0:0:0:0:0|h[Ahead of the Curve]|h|r",
+})
+
+CSPAM.UI:Toggle()
+
+-- Switch to Tab 3
+local tabBtns = CSPAM.UI.tabButtons
+if tabBtns and tabBtns[3] then
+    tabBtns[3]:GetScript("OnClick")(tabBtns[3])
+end
+
+local p3 = CSPAM.UI.contentPanels and CSPAM.UI.contentPanels[3]
+assert(p3, "contentPanels[3] not found!")
+assert(p3.logContent and p3.logContent.rows and #p3.logContent.rows > 0, "No log rows created in Tab 3!")
+
+local logRow = p3.logContent.rows[1]
+assert(logRow:IsShown(), "Log row 1 should be shown!")
+assert(logRow:GetHyperlinksEnabled() == true, "Log row 1 must have hyperlinks enabled!")
+
+-- 1. Test hover over item link
+logRow:GetScript("OnHyperlinkEnter")(logRow, "item:228514:0:0:0:0:0:0:0", "[Ashes of Belo'ren]")
+assert(GameTooltip:IsShown(), "GameTooltip should be shown on item hyperlink enter!")
+assert(GameTooltip._hyperlink == "item:228514:0:0:0:0:0:0:0", "GameTooltip should have received the item hyperlink!")
+
+-- 2. Test hover leave
+logRow:GetScript("OnHyperlinkLeave")(logRow)
+assert(not GameTooltip:IsShown(), "GameTooltip should be hidden on hyperlink leave!")
+
+-- 3. Test click on achievement link
+logRow:GetScript("OnHyperlinkClick")(logRow, "achievement:1234:0:0:0:0:0:0:0", "[Ahead of the Curve]", "LeftButton")
+assert(#itemRefCalls == 1, "SetItemRef should have been called once!")
+assert(itemRefCalls[1].link == "achievement:1234:0:0:0:0:0:0:0", "SetItemRef should have received the achievement link!")
+
+-- 4. Test click on player link
+logRow:GetScript("OnHyperlinkClick")(logRow, "player:Cilette-MoonGuard", "Cilette-MoonGuard", "LeftButton")
+assert(#itemRefCalls == 2, "SetItemRef should have been called twice!")
+assert(itemRefCalls[2].link == "player:Cilette-MoonGuard", "SetItemRef should have received the player link!")
+
+-- 5. Test mouse wheel forwarding
+local scrolledDelta = 0
+p3.scrollFrame:SetScript("OnMouseWheel", function(self, delta) scrolledDelta = delta end)
+logRow:GetScript("OnMouseWheel")(logRow, -1)
+assert(scrolledDelta == -1, "Mouse wheel on log row must forward to p3.scrollFrame!")
+print("  -> All Tab 3 hyperlink & mousewheel tests passed!")
 
 print("ALL UI TESTS PASSED!")
