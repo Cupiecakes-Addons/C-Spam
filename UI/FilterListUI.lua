@@ -361,9 +361,12 @@ function UI:Init()
     mainFrame:SetMovable(true)
     mainFrame:EnableMouse(true)
     mainFrame:RegisterForDrag("LeftButton")
-    mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
-    mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
-    mainFrame:SetScript("OnHide", StopAgeTicker)
+    mainFrame:SetScript("OnHide", function()
+        StopAgeTicker()
+        if contentPanels[2] and contentPanels[2].HideDetail then
+            contentPanels[2].HideDetail()
+        end
+    end)
     -- UI:Toggle() reopens straight into the last active tab without going
     -- through ShowTab, so the ticker has to be revived here too
     mainFrame:SetScript("OnShow", function()
@@ -464,6 +467,9 @@ function UI:Init()
             StartAgeTicker()
         else
             StopAgeTicker()
+        end
+        if contentPanels[2] and contentPanels[2].HideDetail then
+            contentPanels[2].HideDetail()
         end
         UI:Refresh()
     end
@@ -609,6 +615,31 @@ function UI:Init()
     local p2 = contentPanels[2]
     p2.packCheckboxes = {}
 
+    -- View 1: Cards Overview Frame
+    local cardsView = CreateFrame("Frame", nil, p2)
+    cardsView:SetAllPoints()
+    p2.cardsView = cardsView
+
+    -- View 2: Signatures Detail Frame
+    local detailView = CreateFrame("Frame", nil, p2)
+    detailView:SetAllPoints()
+    detailView:Hide()
+    p2.detailView = detailView
+
+    local currentDetailPackKey = nil
+    local packSearchFilter = ""
+
+    local function HideDetail()
+        detailView:Hide()
+        cardsView:Show()
+        currentDetailPackKey = nil
+        packSearchFilter = ""
+        if p2.searchBox then
+            p2.searchBox:SetText("")
+        end
+    end
+    p2.HideDetail = HideDetail
+
     -- Cards are built straight from Data/DefaultPacks.lua (name, description,
     -- example, order): a new pack added there appears here automatically
     local packKeys = {}
@@ -627,7 +658,7 @@ function UI:Init()
         local pack = CSPAM.Packs[key]
         local packKey = key
         local title = (pack.name or key):upper()
-        local card = CreateElvCard(p2, title, pack.description, 684, 105)
+        local card = CreateElvCard(cardsView, title, pack.description, 684, 105)
         card:SetPoint("TOPLEFT", 10, cardY)
 
         local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
@@ -637,9 +668,30 @@ function UI:Init()
         end)
         cb:SetPoint("TOPLEFT", 12, -48)
 
-        local badge = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        badge:SetPoint("LEFT", cb.text, "RIGHT", 14, 0)
-        badge:SetText(string.format("(|cffffd100%d calibrated signatures|r)", pack.words and #pack.words or 0))
+        local wordCount = pack.words and #pack.words or 0
+
+        -- Interactive clickable signature badge
+        local badgeBtn = CreateFrame("Button", nil, card)
+        badgeBtn:SetHeight(20)
+        badgeBtn:SetPoint("LEFT", cb.text, "RIGHT", 10, 0)
+
+        local badgeText = badgeBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        badgeText:SetPoint("LEFT", 0, 0)
+        badgeText:SetText(string.format("(|cffffd100%d calibrated signatures|r |cff00e5ff[View List]|r)", wordCount))
+        badgeBtn.text = badgeText
+        badgeBtn:SetWidth(badgeText:GetStringWidth() + 10)
+
+        badgeBtn:SetScript("OnEnter", function(self)
+            self.text:SetText(string.format("(|cffffffff%d calibrated signatures|r |cffffd100[View List]|r)", wordCount))
+        end)
+        badgeBtn:SetScript("OnLeave", function(self)
+            self.text:SetText(string.format("(|cffffd100%d calibrated signatures|r |cff00e5ff[View List]|r)", wordCount))
+        end)
+        SetElvTooltip(badgeBtn, title, "Click to view the complete list of calibrated signatures and tracking modes in this pack.")
+
+        badgeBtn:SetScript("OnClick", function()
+            p2.ShowDetail(packKey)
+        end)
 
         if pack.example then
             local ex = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -653,6 +705,185 @@ function UI:Init()
         p2.packCheckboxes[packKey] = cb
         cardY = cardY - 118
     end
+
+    -- Detail View Header Elements
+    local backBtn = CreateElvButton(detailView, "← Back to Packs", 130, 24)
+    backBtn:SetPoint("TOPLEFT", 10, -10)
+    backBtn:SetScript("OnClick", HideDetail)
+    SetElvTooltip(backBtn, "Return to Defense Packs", "Go back to the Defense Packs overview cards.")
+
+    local detailSearchBox = CreateElvEditBox(detailView, 180, 24)
+    detailSearchBox:SetPoint("TOPRIGHT", -10, -10)
+    local dsPlaceholder = detailSearchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    dsPlaceholder:SetPoint("LEFT", 8, 0)
+    dsPlaceholder:SetText("Search signatures...")
+    detailSearchBox.placeholder = dsPlaceholder
+    p2.searchBox = detailSearchBox
+    SetElvTooltip(detailSearchBox, "Search Signatures", "Type here to quickly filter signatures within this pack.")
+
+    local detailTitle = detailView:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    detailTitle:SetPoint("LEFT", backBtn, "RIGHT", 12, 0)
+    detailTitle:SetPoint("RIGHT", detailSearchBox, "LEFT", -10, 0)
+    detailTitle:SetJustifyH("LEFT")
+    detailTitle:SetWordWrap(false)
+    detailView.title = detailTitle
+
+    -- Table Header
+    local dthFrame = CreateFrame("Frame", nil, detailView, "BackdropTemplate")
+    dthFrame:SetPoint("TOPLEFT", 10, -42)
+    dthFrame:SetPoint("TOPRIGHT", -10, -42)
+    dthFrame:SetHeight(20)
+    CreateElvBackdrop(dthFrame, { 0.10, 0.10, 0.13, 0.80 }, C_INNER_BORD, true)
+
+    local dth1 = dthFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    dth1:SetPoint("LEFT", 10, 0)
+    dth1:SetText("|cff00e5ffTARGET SIGNATURE / KEYWORD|r")
+
+    local dth2 = dthFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    dth2:SetPoint("LEFT", 440, 0)
+    dth2:SetText("|cff00e5ffTRACKING MODE|r")
+
+    -- ScrollFrame
+    local detailScrollFrame = CreateFrame("ScrollFrame", "CSPAMPackDetailScrollFrame", detailView, "UIPanelScrollFrameTemplate")
+    detailScrollFrame:SetPoint("TOPLEFT", 10, -64)
+    detailScrollFrame:SetPoint("BOTTOMRIGHT", -26, 32)
+    detailScrollFrame:EnableMouseWheel(true)
+    detailScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local maxScroll = self:GetVerticalScrollRange()
+        local step = 30
+        if delta > 0 then
+            self:SetVerticalScroll(math.max(0, cur - step))
+        else
+            self:SetVerticalScroll(math.min(maxScroll, cur + step))
+        end
+    end)
+
+    local detailScrollContent = CreateFrame("Frame", nil, detailScrollFrame)
+    detailScrollContent:SetSize(660, 400)
+    detailScrollFrame:SetScrollChild(detailScrollContent)
+    detailScrollContent.rows = {}
+    p2.detailScrollContent = detailScrollContent
+
+    -- Bottom bar
+    local bottomBar = CreateFrame("Frame", nil, detailView, "BackdropTemplate")
+    bottomBar:SetPoint("BOTTOMLEFT", 10, 6)
+    bottomBar:SetPoint("BOTTOMRIGHT", -10, 6)
+    bottomBar:SetHeight(24)
+    CreateElvBackdrop(bottomBar, { 0.08, 0.08, 0.10, 0.70 }, C_INNER_BORD, true)
+
+    local statusText = bottomBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    statusText:SetPoint("LEFT", 10, 0)
+    detailView.statusText = statusText
+
+    local bottomCloseBtn = CreateElvButton(bottomBar, "Close / Back", 110, 18)
+    bottomCloseBtn:SetPoint("RIGHT", -3, 0)
+    bottomCloseBtn:SetScript("OnClick", HideDetail)
+
+    local function RefreshDetailRows()
+        if not currentDetailPackKey or not CSPAM.Packs[currentDetailPackKey] then return end
+        local pack = CSPAM.Packs[currentDetailPackKey]
+        local words = pack.words or {}
+
+        for _, r in ipairs(detailScrollContent.rows) do
+            r:Hide()
+        end
+
+        local y = 0
+        local rowIndex = 0
+
+        for i, item in ipairs(words) do
+            local match = true
+            if packSearchFilter ~= "" then
+                local tMatch = item.text and item.text:lower():find(packSearchFilter, 1, true) ~= nil
+                local mMatch = item.mode and item.mode:lower():find(packSearchFilter, 1, true) ~= nil
+                match = tMatch or mMatch
+            end
+
+            if match then
+                rowIndex = rowIndex + 1
+                local row = detailScrollContent.rows[rowIndex]
+                if not row then
+                    row = CreateFrame("Frame", nil, detailScrollContent, "BackdropTemplate")
+                    row:SetSize(656, 22)
+                    CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
+
+                    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                    row.text:SetPoint("LEFT", 10, 0)
+                    row.text:SetWidth(420)
+                    row.text:SetJustifyH("LEFT")
+                    row.text:SetWordWrap(false)
+
+                    row.mode = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                    row.mode:SetPoint("LEFT", 440, 0)
+
+                    row:SetScript("OnEnter", function(self)
+                        self:SetBackdropColor(C_BTN_HOVER[1], C_BTN_HOVER[2], C_BTN_HOVER[3], C_BTN_HOVER[4])
+                    end)
+                    row:SetScript("OnLeave", function(self)
+                        local bg = (self.rowIndex % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
+                        self:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
+                    end)
+
+                    detailScrollContent.rows[rowIndex] = row
+                end
+
+                row.rowIndex = rowIndex
+                local bg = (rowIndex % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
+                row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
+
+                row.text:SetText(item.text or "")
+
+                local mode = item.mode or "EXACT"
+                local modeCol = "|cff00e5ff" -- EXACT: cyan
+                if mode == "PHRASE" then
+                    modeCol = "|cffffd100" -- PHRASE: gold
+                elseif mode == "CONTAINS" then
+                    modeCol = "|cffc084fc" -- CONTAINS: purple
+                elseif mode == "REGEX" then
+                    modeCol = "|cff4ade80" -- REGEX: green
+                end
+                row.mode:SetText(modeCol .. mode .. "|r")
+
+                row:SetPoint("TOPLEFT", 0, -y)
+                row:Show()
+                y = y + 23
+            end
+        end
+
+        detailScrollContent:SetHeight(math.max(y, 380))
+        if packSearchFilter == "" then
+            statusText:SetText(string.format("Showing all |cffffd100%d|r calibrated signatures", #words))
+        else
+            statusText:SetText(string.format("Found |cffffd100%d|r of %d signatures matching \"|cff00e5ff%s|r\"", rowIndex, #words, packSearchFilter))
+        end
+    end
+    p2.RefreshDetailRows = RefreshDetailRows
+
+    detailSearchBox:SetScript("OnTextChanged", function(self)
+        local val = self:GetText():lower():trim()
+        if val == "" then dsPlaceholder:Show() else dsPlaceholder:Hide() end
+        packSearchFilter = val
+        RefreshDetailRows()
+    end)
+
+    local function ShowDetail(packKey)
+        if not CSPAM.Packs[packKey] then return end
+        currentDetailPackKey = packKey
+        packSearchFilter = ""
+        detailSearchBox:SetText("")
+        dsPlaceholder:Show()
+
+        local pack = CSPAM.Packs[packKey]
+        local count = pack.words and #pack.words or 0
+        detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d Signatures)|r", (pack.name or packKey):upper(), count))
+
+        cardsView:Hide()
+        detailView:Show()
+        detailScrollFrame:SetVerticalScroll(0)
+        RefreshDetailRows()
+    end
+    p2.ShowDetail = ShowDetail
 
     -- =========================================================================
     -- TAB 3: INTERCEPT LOG
@@ -1033,6 +1264,9 @@ function UI:Refresh()
             for key, cb in pairs(p2.packCheckboxes) do
                 cb:SetChecked(CSPAM.db.packs[key] == true)
             end
+        end
+        if p2 and p2.detailView and p2.detailView:IsShown() and p2.RefreshDetailRows then
+            p2.RefreshDetailRows()
         end
 
     elseif activeTab == 3 then
