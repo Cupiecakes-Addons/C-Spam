@@ -5,6 +5,17 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-09-12
+
+### Added
+- **Interactive Defense Pack Signature Viewer**: Clicking any pack's calibrated signature badge (e.g. `(228 calibrated signatures [View List])`) in the Defense Packs tab now transitions directly to a dedicated in-window signature browser.
+- **Real-Time Signature Search**: Type any word or phrase in the search box to instantly filter through the 200+ signatures in that pack.
+- **Color-Coded Mode Badges**: Each signature in the list clearly displays its tracking mode (`EXACT` in cyan, `PHRASE` in gold, `CONTAINS` in violet, `REGEX` in green).
+- **Smooth Navigation**: One-click `← Back to Packs` button returns to the defense pack cards overview; switching tabs or closing the console automatically resets the view.
+
+### Fixed
+- **WowUp Addon Updater Compatibility**: Automatic packaging of version-stamped release archives (`C-Spam-vX.Y.Z.zip`) and BigWigs `release.json` metadata for seamless detection and 1-click updates in WowUp.
+
 ---
 
 ## [1.7.1] - 2026-09-12
