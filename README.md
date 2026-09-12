@@ -26,9 +26,10 @@
 - ⚙️ **ElvUI-Themed Tactical Console**: Sleek 1-pixel borders, matte charcoal panels, cyan/red accenting, and informative inline tooltips with concrete examples.
 - 🛸 **Custom Minimap Turret Button**: Draggable circular turret button with live hover telemetry (*Airspace Scanned*, *Threats Intercepted*, *% Intercept Rate*) and 1-click console access.
 - 📦 **1-Click Pre-Calibrated Defense Packs**:
-  - 🏛️ **Political Discourse**: Candidates, elections, partisan arguments, and campaign phrases.
+  - 🏛️ **Political Discourse**: Candidates, elections, partisan arguments, extremist movements, culture-war buzzwords, and rage-bait streamers.
   - 💰 **Carries, Boosting & Gold Spam**: M+ carry ads, raid loot sales, AFK leveling, and external Discord/gold seller links.
   - 🚫 **Toxicity & Hostile Slurs**: Severe harassment, toxicity, and unmoderated hate speech.
+  - 🔞 **Explicit & NSFW Chat**: Sex acts, anatomical slang, fetishes, and strong profanity.
 - 🛡️ **IFF Safe Allies (Bypasses)**: Automatic bypasses for Battle.net/character Friends, Guildmates, and Party/Raid group members.
 - 📡 **Monitored Airspace**: Per-channel radar toggles for Public Channels (Trade, Services, General, LFG), Communities, Local Say/Yell, and Direct Whispers.
 - 🎯 **Dual Engagement Protocols**:
