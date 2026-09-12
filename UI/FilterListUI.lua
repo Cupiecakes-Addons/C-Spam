@@ -8,6 +8,7 @@ local mainFrame = nil
 local activeTab = 1
 local searchFilter = ""
 local contentPanels = {}
+UI.contentPanels = contentPanels
 local tabButtons = {}
 
 -- =============================================================================
@@ -111,6 +112,7 @@ local C_BG_DARK    = { 0.05, 0.05, 0.06, 0.78 }
 local C_BG_PANEL   = { 0.07, 0.07, 0.08, 0.70 }
 local C_BG_ROW_ALT = { 0.06, 0.06, 0.08, 0.50 }
 local C_ROW_ODD    = { 0.05, 0.05, 0.07, 0.35 }
+local C_ROW_EVEN   = C_BG_ROW_ALT
 local C_ROW_BORDER = { 0.12, 0.12, 0.15, 0.50 }
 local C_BORDER     = { 0.00, 0.00, 0.00, 1.00 }
 local C_INNER_BORD = { 0.18, 0.18, 0.22, 0.85 }
@@ -707,7 +709,7 @@ function UI:Init()
     end
 
     -- Detail View Header Elements
-    local backBtn = CreateElvButton(detailView, "← Back to Packs", 130, 24)
+    local backBtn = CreateElvButton(detailView, "< Back to Packs", 130, 24)
     backBtn:SetPoint("TOPLEFT", 10, -10)
     backBtn:SetScript("OnClick", HideDetail)
     SetElvTooltip(backBtn, "Return to Defense Packs", "Go back to the Defense Packs overview cards.")
@@ -746,7 +748,7 @@ function UI:Init()
     -- ScrollFrame
     local detailScrollFrame = CreateFrame("ScrollFrame", "CSPAMPackDetailScrollFrame", detailView, "UIPanelScrollFrameTemplate")
     detailScrollFrame:SetPoint("TOPLEFT", 10, -64)
-    detailScrollFrame:SetPoint("BOTTOMRIGHT", -26, 32)
+    detailScrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
     detailScrollFrame:EnableMouseWheel(true)
     detailScrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local cur = self:GetVerticalScroll()
@@ -764,21 +766,6 @@ function UI:Init()
     detailScrollFrame:SetScrollChild(detailScrollContent)
     detailScrollContent.rows = {}
     p2.detailScrollContent = detailScrollContent
-
-    -- Bottom bar
-    local bottomBar = CreateFrame("Frame", nil, detailView, "BackdropTemplate")
-    bottomBar:SetPoint("BOTTOMLEFT", 10, 6)
-    bottomBar:SetPoint("BOTTOMRIGHT", -10, 6)
-    bottomBar:SetHeight(24)
-    CreateElvBackdrop(bottomBar, { 0.08, 0.08, 0.10, 0.70 }, C_INNER_BORD, true)
-
-    local statusText = bottomBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    statusText:SetPoint("LEFT", 10, 0)
-    detailView.statusText = statusText
-
-    local bottomCloseBtn = CreateElvButton(bottomBar, "Close / Back", 110, 18)
-    bottomCloseBtn:SetPoint("RIGHT", -3, 0)
-    bottomCloseBtn:SetScript("OnClick", HideDetail)
 
     local function RefreshDetailRows()
         if not currentDetailPackKey or not CSPAM.Packs[currentDetailPackKey] then return end
@@ -845,6 +832,7 @@ function UI:Init()
                 end
                 row.mode:SetText(modeCol .. mode .. "|r")
 
+                row:ClearAllPoints()
                 row:SetPoint("TOPLEFT", 0, -y)
                 row:Show()
                 y = y + 23
@@ -853,9 +841,9 @@ function UI:Init()
 
         detailScrollContent:SetHeight(math.max(y, 380))
         if packSearchFilter == "" then
-            statusText:SetText(string.format("Showing all |cffffd100%d|r calibrated signatures", #words))
+            detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d Signatures)|r", (pack.name or currentDetailPackKey):upper(), #words))
         else
-            statusText:SetText(string.format("Found |cffffd100%d|r of %d signatures matching \"|cff00e5ff%s|r\"", rowIndex, #words, packSearchFilter))
+            detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d of %d Signatures)|r", (pack.name or currentDetailPackKey):upper(), rowIndex, #words))
         end
     end
     p2.RefreshDetailRows = RefreshDetailRows
