@@ -39,6 +39,7 @@ rsync -a \
     --exclude 'dist' \
     --exclude 'scripts' \
     --exclude 'tests' \
+    --exclude '*.bak*' \
     ./ dist/C-Spam/
 
 (cd dist && zip -rq "${ARCHIVE_NAME}" C-Spam)
