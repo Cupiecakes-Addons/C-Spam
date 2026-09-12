@@ -5,6 +5,16 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-09-12
+
+### Fixed
+- **Defense Pack Signature Viewer Row Rendering**: Fixed an unhandled Lua error when evaluating alternating row background colors (`C_ROW_EVEN`) that prevented signatures beyond the first row from rendering. All signatures (228 politics, 216 boosting, 136 toxicity, 258 nsfw) now load and scroll cleanly.
+- **Removed Redundant Close Button**: Removed the duplicate bottom close button from the signature detail view, keeping the top `< Back to Packs` button and maximizing vertical scroll space for signatures.
+- **Font Glyph Compatibility**: Replaced the unicode left arrow with ASCII `< Back to Packs` to prevent missing glyph question-box symbols on standard client game fonts.
+- **Dynamic Signature Counter**: Filtered search matches and signature counts now update directly in the header title (e.g. `POLITICS & ELECTIONS (3 of 228 Signatures)`).
+
+---
+
 ## [1.7.2] - 2026-09-12
 
 ### Added
