@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.7.1] - 2026-09-12
 
 ### Added
 - **Political Discourse pack widened from 156 to 228 signatures** to cover the rage-bait topics that start fights in Trade: reproductive rights (`abortion`, `prolife`, `prochoice`, `planned parenthood`), extremist movements (`nazi`, `white nationalist`, `white supremacy`, `kkk`, `proud boys`, `oath keepers`, `boogaloo`, `groyper`), the Israel–Gaza conflict (`zionist`, `zionism`, `hamas`, `hezbollah`, `idf`, `gaza`), manosphere slang (`incel`, `femcel`, `mgtow`, `looksmax`, `soyboy`, `tradwife`, `sigma male`, `andrew tate`, `sneako`, `fresh and fit`), drama streamers (`asmongold`, `zackrawrr`, `hasanabi`, `hasan piker`, `destiny`, `adin ross`, `xqc`, `kick.com`, plus `charlie kirk`), and culture-war buzzwords (`groomer`, `virtue signal`, `cancel culture`, `snowflake`, `psyop`, `sjw`, `clown world`). `EXACT` rules match whole tokens and never stem, so plurals and inflections the singular would miss are signatures of their own — `incels`, `zionists`, `groomers`, `redpilled`, `virtue signaling`, `white supremacists` and so on.
