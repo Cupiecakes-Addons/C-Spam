@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Political Discourse pack widened from 156 to 228 signatures** to cover the rage-bait topics that start fights in Trade: reproductive rights (`abortion`, `prolife`, `prochoice`, `planned parenthood`), extremist movements (`nazi`, `white nationalist`, `white supremacy`, `kkk`, `proud boys`, `oath keepers`, `boogaloo`, `groyper`), the Israel–Gaza conflict (`zionist`, `zionism`, `hamas`, `hezbollah`, `idf`, `gaza`), manosphere slang (`incel`, `femcel`, `mgtow`, `looksmax`, `soyboy`, `tradwife`, `sigma male`, `andrew tate`, `sneako`, `fresh and fit`), drama streamers (`asmongold`, `zackrawrr`, `hasanabi`, `hasan piker`, `destiny`, `adin ross`, `xqc`, `kick.com`, plus `charlie kirk`), and culture-war buzzwords (`groomer`, `virtue signal`, `cancel culture`, `snowflake`, `psyop`, `sjw`, `clown world`). `EXACT` rules match whole tokens and never stem, so plurals and inflections the singular would miss are signatures of their own — `incels`, `zionists`, `groomers`, `redpilled`, `virtue signaling`, `white supremacists` and so on.
+- **Toxicity pack: `cucks` and `cucked`**, which the existing `cuck` token rule could not reach. A `CONTAINS` stem would have covered both but would also have intercepted `cuckoo`.
+- **Regression test for duplicate signatures.** Single-token rules from every pack share one index, so a term listed in two packs silently overwrote the first and the Intercept Log credited whichever pack `pairs()` happened to visit last. The smoke test now fails on any duplicate.
+
+### Changed
+- Political Discourse pack description and example updated for the wider scope. The pack keeps its name and its `politics` toggle key, so existing on/off state carries over.
+- README pack list now includes Explicit & NSFW Chat, which it had omitted since 1.7.0.
+
+### Notes
+- 25 requested terms were already present and were not duplicated: `pro-life`, `pro-choice`, `roe v wade`, `antifa`, `alt-right`, `fascist`, `fascism`, `marxist`, `marxism`, `commie`, `qanon`, `maga`, `trump`, `biden`, `kamala`, `libtard`, `blackpill`, `redpill`, `woke`, `anti-woke`, `dei`, `crt` and `deep state` in Political Discourse; `cuck` in Toxicity; `cuckold` in Explicit & NSFW Chat.
+- Three more need no rule of their own: `anti-abortion` and `neo-nazi` are caught by the `abortion` and `nazi` tokens once punctuation is stripped, and the `looksmax` stem already covers `looksmaxxing`.
+- **`destiny` also intercepts the game.** Whole-word matching stops it firing inside other words, but Destiny the streamer and Destiny 2 the game are the same word, so `anyone still play destiny 2?` is intercepted too. Drop the signature if the game matters more than the streamer.
+- Other deliberate trade-offs: `kkk` is also Brazilian Portuguese laughter (only a token of exactly three k's matches, so `kkkkkk` still passes), `boogaloo` catches the "Electric Boogaloo" sequel joke, `nazi` catches "grammar nazi", and `asmongold`/`asmon` will remove ordinary WoW chat about the streamer.
+- Deliberately left out: `mog`/`mogging` (transmog), `great replacement` ("a great replacement for my trinket"), `libs` (addon libraries), and the bare names `hasan` and `tate`.
+
+---
+
 ## [1.7.0] - 2026-08-21
 
 ### Added

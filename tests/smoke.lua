@@ -159,5 +159,69 @@ check("'cockatrice/peacock' pass ('cock' is EXACT)",
 check("'buttress' passes ('butt' is EXACT)",
     eval("buttress the wall on the left").shouldFilter == false)
 
+-- Political pack: reproductive rights, extremism, manosphere, drama
+-- streamers and culture-war buzzwords
+check("'abortion' fires", eval("abortion talk in trade again").shouldFilter == true)
+check("'anti-abortion' fires via the 'abortion' token",
+    eval("the anti-abortion guy is back").shouldFilter == true)
+check("'prolife' fires", eval("he is prolife apparently").shouldFilter == true)
+check("phrase 'planned parenthood' fires", eval("someone typed planned parenthood").shouldFilter == true)
+check("'neo-nazi' fires via the 'nazi' token", eval("that is neo-nazi stuff").shouldFilter == true)
+check("plural phrase 'white supremacists' fires", eval("white supremacists in general").shouldFilter == true)
+check("phrase 'proud boys' fires", eval("proud boys flag guy").shouldFilter == true)
+check("'zionist' fires", eval("calling everyone a zionist").shouldFilter == true)
+check("'hamas' fires", eval("hamas this hamas that").shouldFilter == true)
+check("leet '1nc3l' fires via incel", eval("what an 1nc3l").shouldFilter == true)
+check("'looksmaxxing' fires via the 'looksmax' stem", eval("day 40 of looksmaxxing").shouldFilter == true)
+check("phrase 'andrew tate' fires", eval("andrew tate clip in trade").shouldFilter == true)
+check("phrase 'fresh and fit' fires", eval("fresh and fit podcast").shouldFilter == true)
+check("'asmongold' fires", eval("asmongold reacted to it").shouldFilter == true)
+check("phrase 'hasan piker' fires", eval("hasan piker stream tonight").shouldFilter == true)
+check("'xqc' fires", eval("xqc yelling again").shouldFilter == true)
+check("'kick.com' fires", eval("watch me on kick.com/somebody").shouldFilter == true)
+check("phrase 'virtue signaling' fires", eval("pure virtue signaling").shouldFilter == true)
+check("phrase 'cancel culture' fires", eval("cancel culture is wild").shouldFilter == true)
+check("'snowflake' fires", eval("cry more snowflake").shouldFilter == true)
+check("'psyop' fires", eval("it's a psyop").shouldFilter == true)
+check("'cucked' fires", eval("got cucked by rng").shouldFilter == true)
+check("'cuckoo' passes ('cuck' is EXACT)", eval("cuckoo clock on the wall").shouldFilter == false)
+check("'grooming' passes ('groomer' is EXACT)",
+    eval("grooming my pet at the stable").shouldFilter == false)
+check("'kicked' passes ('kick.com' needs the domain)", eval("got kicked from the group").shouldFilter == false)
+check("'abort' passes", eval("abort abort, wipe it").shouldFilter == false)
+check("'mogging' passes (transmog slang, not a rule)",
+    eval("mogging with my new transmog").shouldFilter == false)
+check("'kkkkkk' laughter passes ('kkk' is EXACT)", eval("kkkkkk that was funny").shouldFilter == false)
+check("'great replacement' gear talk passes",
+    eval("a great replacement for my trinket").shouldFilter == false)
+
+-- Single-token rules from every pack share one index, so a term listed in two
+-- packs silently overwrites the first and pairs() order decides which pack
+-- the log credits. EXACT/PHRASE are compared in their cleaned form, the same
+-- space RebuildIndex compiles them into.
+do
+    local seen, dupes = {}, {}
+    for packKey, pack in pairs(CSPAM.Packs) do
+        for _, w in ipairs(pack.words) do
+            local mode = w.mode:upper()
+            local key
+            if mode == "EXACT" or mode == "PHRASE" then
+                key = "W:" .. w.text:lower():gsub("[%p%c]", " "):gsub("%s+", " "):trim()
+            else
+                key = mode .. ":" .. w.text:lower()
+            end
+            if seen[key] then
+                dupes[#dupes + 1] = string.format("'%s' (%s, %s)", w.text, seen[key], packKey)
+            else
+                seen[key] = packKey
+            end
+        end
+    end
+    if #dupes > 0 then
+        print("      duplicates: " .. table.concat(dupes, "; "))
+    end
+    check("no duplicate signatures across packs", #dupes == 0)
+end
+
 print(failures == 0 and "ALL PASS" or (failures .. " FAILURES"))
 os.exit(failures == 0 and 0 or 1)
