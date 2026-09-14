@@ -195,6 +195,31 @@ check("'kkkkkk' laughter passes ('kkk' is EXACT)", eval("kkkkkk that was funny")
 check("'great replacement' gear talk passes",
     eval("a great replacement for my trinket").shouldFilter == false)
 
+-- Sexuality and gender identity culture-war discourse
+check("'homosexual' fires", eval("talking about homosexual issues in trade").shouldFilter == true)
+check("'homosexuals' fires", eval("some homosexuals were debating").shouldFilter == true)
+check("'homosexuality' fires", eval("topic of homosexuality again").shouldFilter == true)
+check("'heterosexual' fires", eval("he claims he is heterosexual").shouldFilter == true)
+check("'bisexual' fires", eval("bisexual pride").shouldFilter == true)
+check("'gay' fires", eval("that is so gay").shouldFilter == true)
+check("'lesbian' fires", eval("lesbian dating guild").shouldFilter == true)
+check("'lgbtq' fires", eval("lgbtq rights discussion").shouldFilter == true)
+check("'transgender' fires", eval("transgender debate in trade").shouldFilter == true)
+check("phrase 'trans rights' fires", eval("trans rights are human rights").shouldFilter == true)
+check("phrase 'pride month' fires", eval("happy pride month everyone").shouldFilter == true)
+check("phrase 'gender identity' fires", eval("discussing gender identity").shouldFilter == true)
+check("'non-binary' fires via phrase", eval("identifies as non-binary").shouldFilter == true)
+check("'transmog' passes ('transgender' is EXACT, no loose trans stem)",
+    eval("nice transmog where did you get it").shouldFilter == false)
+check("'character transfer' passes",
+    eval("doing a character transfer to another realm").shouldFilter == false)
+check("'transport' passes",
+    eval("take the transport ship to dragon isles").shouldFilter == false)
+check("'lion's pride inn' passes ('pride month' is a phrase)",
+    eval("meet at lion's pride inn").shouldFilter == false)
+check("'sha of pride' passes",
+    eval("farming sha of pride for the mount").shouldFilter == false)
+
 -- Single-token rules from every pack share one index, so a term listed in two
 -- packs silently overwrites the first and pairs() order decides which pack
 -- the log credits. EXACT/PHRASE are compared in their cleaned form, the same
