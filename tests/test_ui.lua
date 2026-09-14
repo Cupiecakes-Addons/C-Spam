@@ -140,7 +140,7 @@ loadaddon("UI/FilterListUI.lua")
 CSPAM.db = {
     enabled = true,
     action = "HIDE",
-    packs = { politics = true, boosting = false, toxicity = true, nsfw = true },
+    packs = { politics = true, sexuality = true, boosting = false, toxicity = true, nsfw = true },
     customWords = {},
     whitelist = { friends = true, guild = true, party = true, characters = {} },
     channelGroups = {},
@@ -154,8 +154,16 @@ CSPAM.UI:Init()
 
 local p2 = CSPAM.UI.contentPanels and CSPAM.UI.contentPanels[2]
 assert(p2, "contentPanels[2] not found!")
+assert(p2.cardsScrollFrame, "cardsScrollFrame should be created on p2!")
+assert(p2.cardsScrollContent, "cardsScrollContent should be created on p2!")
 
-for _, packKey in ipairs({ "politics", "boosting", "toxicity", "nsfw" }) do
+-- Test cards scrollframe mouse wheel
+p2.cardsScrollFrame:GetScript("OnMouseWheel")(p2.cardsScrollFrame, -1)
+assert(p2.cardsScrollFrame:GetVerticalScroll() == 30, "cardsScrollFrame should scroll down by 30px!")
+p2.cardsScrollFrame:GetScript("OnMouseWheel")(p2.cardsScrollFrame, 1)
+assert(p2.cardsScrollFrame:GetVerticalScroll() == 0, "cardsScrollFrame should scroll back to 0px!")
+
+for _, packKey in ipairs({ "politics", "sexuality", "boosting", "toxicity", "nsfw" }) do
     local pack = CSPAM.Packs[packKey]
     print(string.format("Testing ShowDetail for pack '%s' (%d words)...", packKey, #pack.words))
     local ok, err = pcall(function()

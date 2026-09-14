@@ -29,7 +29,7 @@ loadaddon("Core/Engine.lua")
 CSPAM.db = {
     enabled = true,
     action = "HIDE",
-    packs = { politics = true, boosting = true, toxicity = true, nsfw = true },
+    packs = { politics = true, sexuality = true, boosting = true, toxicity = true, nsfw = true },
     customWords = {
         { text = "link", mode = "CONTAINS", enabled = true },
         { text = "gold", mode = "EXACT", enabled = true },
@@ -195,7 +195,7 @@ check("'kkkkkk' laughter passes ('kkk' is EXACT)", eval("kkkkkk that was funny")
 check("'great replacement' gear talk passes",
     eval("a great replacement for my trinket").shouldFilter == false)
 
--- Sexuality and gender identity culture-war discourse
+-- Sexuality, Gender & Identity pack
 check("'homosexual' fires", eval("talking about homosexual issues in trade").shouldFilter == true)
 check("'homosexuals' fires", eval("some homosexuals were debating").shouldFilter == true)
 check("'homosexuality' fires", eval("topic of homosexuality again").shouldFilter == true)
@@ -204,17 +204,35 @@ check("'bisexual' fires", eval("bisexual pride").shouldFilter == true)
 check("'gay' fires", eval("that is so gay").shouldFilter == true)
 check("'lesbian' fires", eval("lesbian dating guild").shouldFilter == true)
 check("'lgbtq' fires", eval("lgbtq rights discussion").shouldFilter == true)
+check("'trans' alone fires (EXACT)", eval("he said he is trans").shouldFilter == true)
+check("leet 'tr@ns' fires via trans", eval("he is tr@ns").shouldFilter == true)
 check("'transgender' fires", eval("transgender debate in trade").shouldFilter == true)
 check("phrase 'trans rights' fires", eval("trans rights are human rights").shouldFilter == true)
 check("phrase 'pride month' fires", eval("happy pride month everyone").shouldFilter == true)
 check("phrase 'gender identity' fires", eval("discussing gender identity").shouldFilter == true)
 check("'non-binary' fires via phrase", eval("identifies as non-binary").shouldFilter == true)
-check("'transmog' passes ('transgender' is EXACT, no loose trans stem)",
+check("'femboy' fires", eval("what a cute femboy").shouldFilter == true)
+check("'twink' fires", eval("blood elf twink guild").shouldFilter == true)
+check("'ladyboy' fires", eval("ladyboy stream tonight").shouldFilter == true)
+check("'shemale' fires", eval("watching shemale stuff").shouldFilter == true)
+check("'crossdresser' fires", eval("he is a crossdresser").shouldFilter == true)
+check("'sissy' fires", eval("sissy behavior").shouldFilter == true)
+check("'deadname' fires", eval("stop deadnaming people").shouldFilter == true)
+check("'misgender' fires", eval("trying to misgender everyone").shouldFilter == true)
+check("'pronouns' fires", eval("what are your pronouns").shouldFilter == true)
+check("phrase 'fudge packer' fires (moved from nsfw)", eval("calling him a fudge packer").shouldFilter == true)
+
+-- WoW False-Positive Safety Checks
+check("'transmog' passes ('trans' is EXACT, never CONTAINS)",
     eval("nice transmog where did you get it").shouldFilter == false)
+check("'transmogrification' passes",
+    eval("transmogrification vendor is near the bank").shouldFilter == false)
 check("'character transfer' passes",
     eval("doing a character transfer to another realm").shouldFilter == false)
 check("'transport' passes",
     eval("take the transport ship to dragon isles").shouldFilter == false)
+check("'transmute' passes",
+    eval("alchemy transmute cooldown available").shouldFilter == false)
 check("'lion's pride inn' passes ('pride month' is a phrase)",
     eval("meet at lion's pride inn").shouldFilter == false)
 check("'sha of pride' passes",
