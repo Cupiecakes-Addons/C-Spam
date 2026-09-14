@@ -20,6 +20,15 @@ local function mockFrame(frameType, name, parent, template)
     function f:RegisterEvent() end
     function f:UnregisterEvent() end
     function f:SetPoint(pt, rel, rpt, x, y) table.insert(self._points, { pt, rel, rpt, x, y }) end
+    function f:GetPoint()
+        if self._points and #self._points > 0 then
+            local p = self._points[#self._points]
+            return p[1], p[2], p[3], p[4], p[5]
+        end
+        return "CENTER", UIParent, "CENTER", 0, 0
+    end
+    function f:StartMoving() self._moving = true end
+    function f:StopMovingOrSizing() self._moving = false end
     function f:SetAllPoints(...) end
     function f:ClearAllPoints() self._points = {} end
     function f:Show() self._shown = true end
@@ -237,5 +246,33 @@ p3.scrollFrame:SetScript("OnMouseWheel", function(self, delta) scrolledDelta = d
 logRow:GetScript("OnMouseWheel")(logRow, -1)
 assert(scrolledDelta == -1, "Mouse wheel on log row must forward to p3.scrollFrame!")
 print("  -> All Tab 3 hyperlink & mousewheel tests passed!")
+
+print("Testing Window Dragging & Position Persistence...")
+local mf = CSPAM.UI.mainFrame
+assert(mf, "mainFrame should be exposed on UI!")
+assert(mf.headerBar, "headerBar should be attached to mainFrame!")
+
+-- Test dragging mainFrame directly
+assert(mf:GetScript("OnDragStart"), "mainFrame must have OnDragStart script!")
+assert(mf:GetScript("OnDragStop"), "mainFrame must have OnDragStop script!")
+mf:GetScript("OnDragStart")(mf)
+assert(mf._moving == true, "mainFrame should be moving after OnDragStart!")
+mf:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 120, -80)
+mf:GetScript("OnDragStop")(mf)
+assert(mf._moving == false, "mainFrame should stop moving after OnDragStop!")
+assert(CSPAM.db.windowPosition ~= nil, "CSPAM.db.windowPosition should be saved after dragging!")
+assert(CSPAM.db.windowPosition.x == 120 and CSPAM.db.windowPosition.y == -80, "Saved coordinates should match!")
+
+-- Test dragging via headerBar
+local hb = mf.headerBar
+assert(hb:GetScript("OnDragStart"), "headerBar must have OnDragStart script!")
+assert(hb:GetScript("OnDragStop"), "headerBar must have OnDragStop script!")
+hb:GetScript("OnDragStart")(hb)
+assert(mf._moving == true, "mainFrame should be moving after headerBar OnDragStart!")
+mf:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 250, -150)
+hb:GetScript("OnDragStop")(hb)
+assert(mf._moving == false, "mainFrame should stop moving after headerBar OnDragStop!")
+assert(CSPAM.db.windowPosition.x == 250 and CSPAM.db.windowPosition.y == -150, "Header bar drag should update windowPosition!")
+print("  -> Window dragging and persistence tests passed!")
 
 print("ALL UI TESTS PASSED!")

@@ -359,12 +359,29 @@ function UI:Init()
     if mainFrame then return end
 
     mainFrame = CreateFrame("Frame", "CSPAMMainFrame", UIParent, "BackdropTemplate")
+    UI.mainFrame = mainFrame
     mainFrame:SetSize(720, 580)
-    mainFrame:SetPoint("CENTER")
+    local pos = CSPAM.db and CSPAM.db.windowPosition
+    if pos and pos.point and pos.x and pos.y then
+        mainFrame:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x, pos.y)
+    else
+        mainFrame:SetPoint("CENTER")
+    end
     mainFrame:SetMovable(true)
     mainFrame:EnableMouse(true)
     mainFrame:RegisterForDrag("LeftButton")
-    mainFrame:SetScript("OnHide", function()
+    mainFrame:SetScript("OnDragStart", function(self)
+        self:StartMoving()
+    end)
+    mainFrame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, relPoint, x, y = self:GetPoint()
+        if point and CSPAM.db then
+            CSPAM.db.windowPosition = { point = point, relPoint = relPoint, x = x, y = y }
+        end
+    end)
+    mainFrame:SetScript("OnHide", function(self)
+        self:StopMovingOrSizing()
         StopAgeTicker()
         if contentPanels[2] and contentPanels[2].HideDetail then
             contentPanels[2].HideDetail()
@@ -382,10 +399,23 @@ function UI:Init()
 
     -- Top Header Bar
     local headerBar = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
+    mainFrame.headerBar = headerBar
     headerBar:SetPoint("TOPLEFT", 1, -1)
     headerBar:SetPoint("TOPRIGHT", -1, -1)
     headerBar:SetHeight(28)
     CreateElvBackdrop(headerBar, { 0.08, 0.08, 0.10, 0.80 }, C_INNER_BORD, true)
+    headerBar:EnableMouse(true)
+    headerBar:RegisterForDrag("LeftButton")
+    headerBar:SetScript("OnDragStart", function()
+        mainFrame:StartMoving()
+    end)
+    headerBar:SetScript("OnDragStop", function()
+        mainFrame:StopMovingOrSizing()
+        local point, _, relPoint, x, y = mainFrame:GetPoint()
+        if point and CSPAM.db then
+            CSPAM.db.windowPosition = { point = point, relPoint = relPoint, x = x, y = y }
+        end
+    end)
 
     local iconLogo = headerBar:CreateTexture(nil, "OVERLAY")
     iconLogo:SetSize(20, 20)
