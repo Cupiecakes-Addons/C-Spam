@@ -5,6 +5,16 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.6] - 2026-09-14
+
+### Added
+- **Political Discourse Pack: Sexuality & Gender Identity Signatures**: Expanded the Political Discourse defense pack from 228 to 265 calibrated signatures to intercept culture-war and rage-bait topics spammed in public channels:
+  - **Sexual Orientation Discourse**: Added `homosexual`, `homosexuals`, `homosexuality`, `heterosexual`, `heterosexuals`, `heterosexuality`, `bisexual`, `bisexuals`, `bisexuality`, `pansexual`, `asexual`, `gay`, `gays`, `lesbian`, `lesbians`, `queer`, `queers`, `lgbt`, `lgbtq`, and `lgbtqia`.
+  - **Gender Identity & Discourse Phrases**: Added `transgender`, `transgenders`, `transsexual`, `transsexuals`, `transphobia`, `transphobic`, `nonbinary`, `non-binary`, `gender identity`, `gender dysphoria`, `gender ideology`, `pride month`, `trans rights`, `trans woman`, `trans women`, `trans man`, and `trans men`.
+  - **WoW False-Positive Protection**: Single-word tokens use strict `EXACT` matching so normal in-game terms and abbreviations (`transmog`, `transmogrification`, `character transfer`, `transport ship`, `transmute`, `Lion's Pride Inn`, `Sha of Pride`) pass through without false positive interceptions.
+
+---
+
 ## [1.7.5] - 2026-09-13
 
 ### Fixed
