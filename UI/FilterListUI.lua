@@ -664,6 +664,27 @@ function UI:Init()
     cardsView:SetAllPoints()
     p2.cardsView = cardsView
 
+    local cardsScrollFrame = CreateFrame("ScrollFrame", "CSPAMPacksScrollFrame", cardsView, "UIPanelScrollFrameTemplate")
+    cardsScrollFrame:SetPoint("TOPLEFT", 0, 0)
+    cardsScrollFrame:SetPoint("BOTTOMRIGHT", -26, 0)
+    cardsScrollFrame:EnableMouseWheel(true)
+    cardsScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local maxScroll = self:GetVerticalScrollRange()
+        local step = 30
+        if delta > 0 then
+            self:SetVerticalScroll(math.max(0, cur - step))
+        else
+            self:SetVerticalScroll(math.min(maxScroll, cur + step))
+        end
+    end)
+    p2.cardsScrollFrame = cardsScrollFrame
+
+    local cardsScrollContent = CreateFrame("Frame", nil, cardsScrollFrame)
+    cardsScrollContent:SetSize(674, 100)
+    cardsScrollFrame:SetScrollChild(cardsScrollContent)
+    p2.cardsScrollContent = cardsScrollContent
+
     -- View 2: Signatures Detail Frame
     local detailView = CreateFrame("Frame", nil, p2)
     detailView:SetAllPoints()
@@ -697,13 +718,21 @@ function UI:Init()
         return a < b
     end)
 
-    local cardY = -12
+    local totalCardsHeight = math.max(100, #packKeys * 118 + 14)
+    cardsScrollContent:SetSize(674, totalCardsHeight)
+
+    local cardY = -10
     for _, key in ipairs(packKeys) do
         local pack = CSPAM.Packs[key]
         local packKey = key
         local title = (pack.name or key):upper()
-        local card = CreateElvCard(cardsView, title, pack.description, 684, 105)
+        local card = CreateElvCard(cardsScrollContent, title, pack.description, 674, 105)
         card:SetPoint("TOPLEFT", 10, cardY)
+        card:EnableMouseWheel(true)
+        card:SetScript("OnMouseWheel", function(_, delta)
+            local fn = cardsScrollFrame:GetScript("OnMouseWheel")
+            if fn then fn(cardsScrollFrame, delta) end
+        end)
 
         local cb = CreateElvCheckBox(card, "Active In Defense Matrix", nil, function(checked)
             CSPAM.db.packs[packKey] = checked
