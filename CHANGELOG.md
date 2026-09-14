@@ -5,6 +5,14 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.5] - 2026-09-13
+
+### Fixed
+- **Window Dragging & Movement**: Fixed an issue where the main addon console could not be moved or dragged. Added `OnDragStart` and `OnDragStop` handlers to both the main frame and the top title/header bar, allowing you to freely drag the console anywhere on screen.
+- **Window Position Persistence**: When dragged, the console now saves its coordinates to `CSPAM_DB` (`windowPosition`) and automatically restores to your preferred screen position across `/reload` and game sessions.
+
+---
+
 ## [1.7.4] - 2026-09-12
 
 ### Added
