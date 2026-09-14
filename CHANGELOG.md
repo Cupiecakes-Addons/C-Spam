@@ -5,6 +5,24 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.7] - 2026-09-14
+
+### Added
+- **Dedicated Defense Pack: Sexuality, Gender & Identity (`sexuality`)**: Spun off sexual orientation, gender identity, and presentation terms into their own dedicated defense pack (106 calibrated signatures):
+  - **Sexual Orientation & Identity**: `homosexual`, `heterosexual`, `bisexual`, `pansexual`, `asexual`, `demisexual`, `gay`, `gays`, `lesbian`, `lesbians`, `queer`, `queers`, `lgbt`, `lgbtq`, `lgbtqia`.
+  - **Gender Identity & Transitions**: `trans` (`EXACT` token matching only), `transgender`, `transsexual`, `transphobia`, `transphobic`, `nonbinary`, `non-binary`, `cisgender`, `intersex`, `hrt`, `mtf`, `ftm`, `afab`, `amab`.
+  - **Gender Presentation, Slang & Subculture**: `femboy`, `femboys`, `ladyboy`, `ladyboys`, `shemale`, `shemales`, `tgirl`, `tgirls`, `t-girl`, `tman`, `tmans`, `t-man`, `twink`, `twinks`, `tomgirl`, `tomgirls`, `crossdresser`, `crossdressers`, `crossdressing`, `crossdress`, `sissy`, `sissies`, `catboy`, `catboys`, `tranny`, `trannies`, and `fudge packer`.
+  - **Discourse & Community**: `pronouns`, `neopronoun`, `neopronouns`, `deadname`, `deadnaming`, `deadnamed`, `misgender`, `misgendering`, `misgendered`, `gender identity`, `gender dysphoria`, `gender ideology`, `gender transition`, `gender affirmation`, `gender affirming`, `sex change`, `puberty blocker`, `puberty blockers`, `pride month`, `pride flag`, `pride parade`, `trans rights`, `trans woman`, `trans women`, `trans man`, `trans men`, `trans people`, `trans person`, `trans flag`, `trans activist`.
+- **Defense Packs Overview Card Scrolling**: Upgraded the Defense Packs cards view to embed a smooth `ScrollFrame` with mouse-wheel scrolling, allowing 5 (or more) defense pack cards to scroll cleanly within the console without overflowing.
+
+### Changed
+- **Scrubbed Existing Packs**:
+  - **Political Discourse (`politics`)**: Removed sexuality and gender identity items; pack reverted to its focused political/electoral/governance scope (228 signatures).
+  - **Explicit & NSFW Chat (`nsfw`)**: Removed `fudge packer`, reassigning it to the new Sexuality, Gender & Identity pack (257 signatures).
+  - **Pack Order**: Reordered packs to: 1. Political Discourse, 2. Sexuality, Gender & Identity, 3. Carries & Boosting, 4. Toxicity & Slurs, 5. Explicit & NSFW Chat.
+
+---
+
 ## [1.7.6] - 2026-09-14
 
 ### Added
