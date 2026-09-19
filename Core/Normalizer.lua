@@ -45,6 +45,7 @@ local HOMOGLYPH_MAP = {
     ["\208\165"] = "x", -- Cyrillic Capital Letter Ha
     ["\209\150"] = "i", -- Cyrillic Small Letter Byelorussian-Ukrainian I
     ["\208\134"] = "i", -- Cyrillic Capital Letter Byelorussian-Ukrainian I
+    ["\208\162"] = "t", -- Cyrillic Capital Letter Te
 }
 
 -- Multibyte sequences that need a length-specific replacement of their own
