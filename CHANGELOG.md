@@ -5,6 +5,23 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.8] - 2026-09-18
+
+### Added
+- **Expanded Defense Packs from Live Log Telemetry**:
+  - **Carries & Boosting (`boosting`)**: Added 46 high-confidence signatures targeting commercial services, external portals, and raid/dungeon sales:
+    - **External Portals & Platforms**: `epiccarry`, `gamingcy`, `playhub`, `goldboost`, `wechat`.
+    - **Sales Hooks & Boilerplate**: `cheapest price`, `cheapest prices`, `best price match`, `flash sale`, `hot deal`, `oneshot group`, `one shot group`, `all loot for buyers`, `reserve your spot`, `spots very limited`, `spot very limited`.
+    - **Raid & Carry Terminology**: `armor stacking`, `free armor stacking`, `free funnels`, `loot trader`, `vip funnel`, `full vip funnel`, `vip run`, `vip runs`, `vip option`, `8/8 heroic`, `8/8 full run`, `heroic full clear`, `full heroic run`, `saved or unsaved`, `saved unsaved`.
+    - **In-Raid Payment Variations**: `payment inside raid`, `payments in raid`, `payment made within raid`, `pay inside the raid`, `trade inside raid`, `traid in the raid`.
+    - **AFK & Leveling Formats**: `afkable`, `afk able`, `semi afk`, `chill for afk`, `duo booster`, `tww leveling`, `war within leveling`, `skyriding glyphs`, `quick delves`, `delves tier`, `delves all tier`, `multi runs`, `multiple runs`, `multiply runs`.
+    - **Casino & Roll Gambling**: `casino is open`, `double your bet`, `deathroll`, `death roll`.
+  - **Political Discourse (`politics`)**: Added missing Middle East geopolitical terms (`israel`, `palestine`) and high-frequency controversy terms (`epstein`, `presidential election`, `war on drugs`).
+  - **Toxicity & Slurs (`toxicity`)**: Added common toxic dismissals and hostile remarks: `git gud`, `skill issue`, `dogshit`, `shitter`, `shitters`.
+- **Cyrillic Te Homoglyph Support**: Added Cyrillic Capital Letter Te (`Т` / `\208\162`) to `HOMOGLYPH_MAP` in `Normalizer.lua`, neutralizing `[WТS]` evasion payloads.
+
+---
+
 ## [1.7.7] - 2026-09-14
 
 ### Added
