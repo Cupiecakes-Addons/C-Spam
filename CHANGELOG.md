@@ -5,6 +5,21 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.9] - 2026-09-18
+
+### Added
+- **Carries, Boosting & Gold Seller Spam (`boosting`)**:
+  - Added commercial sales and carry advert phrases: `selling heroic`, `selling mythic`, `selling raid`, `selling m+`, `selling key`.
+  - Added inverted raid boss count patterns: `heroic 8/8`, `mythic 8/8`.
+  - Added commercial discount codes: `coupon code`, `off coupon`.
+- **Political & Culture Discourse (`politics`)**:
+  - Added political authority terms: `politician`, `politicians`.
+  - Added modern slang / culture terms: `simp`, `simps`, `simping`, `simped`.
+- **Explicit & NSFW Chat (`nsfw`)**:
+  - Added calibrated anatomical terms (`EXACT` token matching only to preserve substrings like `peninsula`): `penis`, `penises`.
+
+---
+
 ## [1.7.8] - 2026-09-18
 
 ### Added
