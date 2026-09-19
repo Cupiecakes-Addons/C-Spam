@@ -110,6 +110,12 @@ check("ad hidden in link display text fires", eval(PET_AD).shouldFilter == true)
 local STORE_AD = "|cffffd000|Hquest:12345:70|h[GREAT VAULT]|h|r Your S2 Vault fills NOW, unlocks Aug 19 "
     .. "|cff66bbff|Hquest:12346:70|h[MythicStore.com]|h|r"
 check("mythicstore link ad fires", eval(STORE_AD).shouldFilter == true)
+check("epiccarry website fires", eval("visit epiccarry.net for info").shouldFilter == true)
+check("8/8 heroic full clear fires", eval("WTS STARTING NOW Heroic Full clear 8/8 CHEAPEST Prices").shouldFilter == true)
+check("casino roll spam fires", eval("casino is open! ROLL ANYTHING HIGHER THAN 49").shouldFilter == true)
+check("israel discourse fires", eval("cucking for israel is cringe af").shouldFilter == true)
+check("skill issue fires", eval("massive skill issue tbh").shouldFilter == true)
+check("Cyrillic Te WTS bypass fires", eval("[W\208\162S] carry").shouldFilter == true)
 
 check("safe character bypasses", eval("m+ carry cheap", "Baddie-Realm").shouldFilter == false)
 check("IsValidMode rejects HTTPS / accepts phrase",
