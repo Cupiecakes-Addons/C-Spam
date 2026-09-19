@@ -116,6 +116,11 @@ check("casino roll spam fires", eval("casino is open! ROLL ANYTHING HIGHER THAN 
 check("israel discourse fires", eval("cucking for israel is cringe af").shouldFilter == true)
 check("skill issue fires", eval("massive skill issue tbh").shouldFilter == true)
 check("Cyrillic Te WTS bypass fires", eval("[W\208\162S] carry").shouldFilter == true)
+check("'Selling HEROIC' ad fires", eval("Selling HEROIC VA 8/8 full clear").shouldFilter == true)
+check("'Selling MYTHIC' fires", eval("Selling MYTHIC 8/8 fast").shouldFilter == true)
+check("'Selling M+' fires", eval("Selling M+ keys vault cap").shouldFilter == true)
+check("'coupon code' fires", eval("use coupon code 'guild' for 15% off").shouldFilter == true)
+check("'off coupon' fires", eval("special 15% OFF coupon: 'guild'").shouldFilter == true)
 
 check("safe character bypasses", eval("m+ carry cheap", "Baddie-Realm").shouldFilter == false)
 check("IsValidMode rejects HTTPS / accepts phrase",
@@ -164,6 +169,9 @@ check("'cockatrice/peacock' pass ('cock' is EXACT)",
     eval("cockatrice eye and a peacock feather").shouldFilter == false)
 check("'buttress' passes ('butt' is EXACT)",
     eval("buttress the wall on the left").shouldFilter == false)
+check("'penis' fires (EXACT)", eval("penis jus gets in the way").shouldFilter == true)
+check("'peninsula' passes ('penis' is EXACT)",
+    eval("heading to the peninsula in swamp of sorrows").shouldFilter == false)
 
 -- Political pack: reproductive rights, extremism, manosphere, drama
 -- streamers and culture-war buzzwords
@@ -200,6 +208,10 @@ check("'mogging' passes (transmog slang, not a rule)",
 check("'kkkkkk' laughter passes ('kkk' is EXACT)", eval("kkkkkk that was funny").shouldFilter == false)
 check("'great replacement' gear talk passes",
     eval("a great replacement for my trinket").shouldFilter == false)
+check("'simp' fires (EXACT)", eval("stop being a simp").shouldFilter == true)
+check("'simping' fires (EXACT)", eval("the only thing worth simping for").shouldFilter == true)
+check("'simple' passes ('simp' is EXACT)", eval("that is a simple quest").shouldFilter == false)
+check("'politician' fires", eval("defend their favorite politicians online").shouldFilter == true)
 
 -- Sexuality, Gender & Identity pack
 check("'homosexual' fires", eval("talking about homosexual issues in trade").shouldFilter == true)
