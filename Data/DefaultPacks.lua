@@ -612,7 +612,6 @@ CSPAM.Packs = {
             { text = "check calendar", mode = "PHRASE" },
             { text = "calendar inv", mode = "PHRASE" },
             { text = "huokan", mode = "CONTAINS" },
-            { text = "sylvanas", mode = "EXACT" },
             { text = "nova booster", mode = "PHRASE" },
             -- Raid-selling community ("<Northern Sky> Offers Heroic & Normal
             -- raid runs every 2 hours!"). Also the name of the NSRT raid addon,
@@ -1089,7 +1088,6 @@ CSPAM.Packs = {
             { text = "dilf", mode = "EXACT" },
             { text = "nsfw", mode = "EXACT" },
             { text = "softcore", mode = "EXACT" },
-            { text = "hardcore", mode = "EXACT" },
             { text = "webcam", mode = "EXACT" },
             { text = "webcams", mode = "EXACT" },
             { text = "thot", mode = "EXACT" },
