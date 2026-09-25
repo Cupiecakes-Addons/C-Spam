@@ -61,34 +61,50 @@ function N.ToLower(str)
     return string.lower(str)
 end
 
--- Protect and extract Blizzard hyperlinks (|c...|H...|h...|h|r)
+-- Escape sequences swapped for placeholders before matching, tried in order.
+-- 12.x item links color by quality name (|cnIQ4:) rather than hex, and other
+-- addons' filters run first and splice icons into the text (ElvUI's chat
+-- emoji arrive as |TInterface\AddOns\ElvUI\...|t), so without the last two
+-- entries icon file paths would be matched as if a player had typed them.
+local PROTECTED_PATTERNS = {
+    "(|c%x+|H.-|h.-|h|r)",      -- hex-colored hyperlink
+    "(|cn[^:|]*:|H.-|h.-|h|r)", -- named-color hyperlink
+    "(|H.-|h.-|h)",             -- uncolored hyperlink
+    "(|T.-|t)",                 -- texture icon
+    "(|A.-|a)",                 -- atlas icon
+}
+
+-- Protect and extract Blizzard hyperlinks and inline icons
 function N.ExtractLinks(text)
     local links = {}
     local count = 0
+    -- Plain chat carries no escapes at all; skip the pattern passes
+    if not text:find("|", 1, true) then
+        return text, links
+    end
 
-    local masked = text:gsub("(|c%x+|H.-|h.-|h|r)", function(link)
+    local function protect(link)
         count = count + 1
         links[count] = link
         return string.format(" ___CSPAMLINK%d___ ", count)
-    end)
+    end
 
-    -- Also mask loose raw item/spell/url links if any
-    masked = masked:gsub("(|H.-|h.-|h)", function(link)
-        count = count + 1
-        links[count] = link
-        return string.format(" ___CSPAMLINK%d___ ", count)
-    end)
+    local masked = text
+    for _, pattern in ipairs(PROTECTED_PATTERNS) do
+        masked = masked:gsub(pattern, protect)
+    end
 
     return masked, links
 end
 
--- Restore preserved hyperlinks
+-- Restore preserved hyperlinks, along with the padding spaces ExtractLinks
+-- put around each placeholder, so a masked message keeps its spacing
 function N.RestoreLinks(text, links)
     if not links or #links == 0 then return text end
-    return text:gsub("___CSPAMLINK(%d+)___", function(id)
+    return (text:gsub(" ?___CSPAMLINK(%d+)___ ?", function(id)
         local idx = tonumber(id)
         return (idx and links[idx]) or ""
-    end)
+    end))
 end
 
 -- Apply Leetspeak & Homoglyph translation
@@ -196,6 +212,13 @@ function N.NormalizeMessage(rawMessage, options)
         local text = display:gsub("[%[%]]", " ")
         return " " .. text .. " "
     end)
+    -- Escapes left in the corpus: icons inside link display text, and loose
+    -- color codes (another addon's filter highlighting a keyword) that would
+    -- otherwise glue "cffff0000" onto the front of the word they color
+    if matchSource:find("|", 1, true) then
+        matchSource = matchSource:gsub("|T.-|t", " "):gsub("|A.-|a", " ")
+            :gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:|]*:", ""):gsub("|r", "")
+    end
     local lower = N.ToLower(matchSource)
 
     -- Base sanitized text: replace punctuation/control chars with spaces

@@ -57,15 +57,19 @@ for _, group in ipairs(EV.ChannelGroups) do
     end
 end
 
+-- A filter that returns false with no replacement arguments passes the
+-- message through untouched; only MASK hands back a rewritten payload.
+-- Blizzard skips filters entirely for messages carrying secret values, so
+-- every argument seen here is readable.
 local function FilterChatMessage(chatFrame, event, message, sender, language, channelString, target, flags, unknown, channelNumber, channelName, unknown2, counter, guid, ...)
     local db = CSPAM.db
     if not db or not db.enabled then
-        return false, message, sender, language, channelString, target, flags, unknown, channelNumber, channelName, unknown2, counter, guid, ...
+        return false
     end
 
     local groupKey = eventToGroup[event]
     if groupKey and db.channelGroups and db.channelGroups[groupKey] == false then
-        return false, message, sender, language, channelString, target, flags, unknown, channelNumber, channelName, unknown2, counter, guid, ...
+        return false
     end
 
     local displaySector = channelName
@@ -85,13 +89,16 @@ local function FilterChatMessage(chatFrame, event, message, sender, language, ch
         end
     end
 
-    return false, message, sender, language, channelString, target, flags, unknown, channelNumber, channelName, unknown2, counter, guid, ...
+    return false
 end
 
 function EV:RegisterFilters()
+    -- ChatFrame_AddMessageEventFilter survives in 12.x only as a deprecation
+    -- shim that Blizzard slates for removal next expansion
+    local addFilter = (ChatFrameUtil and ChatFrameUtil.AddMessageEventFilter) or ChatFrame_AddMessageEventFilter
     for _, group in ipairs(EV.ChannelGroups) do
         for _, eventName in ipairs(group.events) do
-            ChatFrame_AddMessageEventFilter(eventName, FilterChatMessage)
+            addFilter(eventName, FilterChatMessage)
         end
     end
 end

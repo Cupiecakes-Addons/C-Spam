@@ -5,6 +5,24 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Leet-spelled phrases slipped through**: messages are matched in leet-decoded form (digits, symbols and `v` become letters), but rules were only compiled as written, so any rule containing a `v`, a digit or a `+` stopped matching once the message used leet anywhere: `p0wer leveling`, `m+ b00st`, `s@ved heroic`, `v@nce` all passed. Rules now carry a decoded twin. Single-word rules deliberately written in leet (`d1e`) get none, so `die` stays allowed.
+- **Icons and color codes were matched as text**: ElvUI's chat emoji arrive as `|TInterface\AddOns\ElvUI\...|t` texture escapes and 12.x item links color by name (`|cnIQ4:`), so file paths and escape fragments leaked into the matcher. Both are now extracted like links, and loose color codes are stripped so a keyword another addon has colored still matches.
+- **MASK censored inside longer words**: EXACT and PHRASE matches now censor whole words only (masking `gold` no longer turns `Goldshire` into `****shire`); CONTAINS still censors substrings. Masked messages also keep their original spacing around links.
+- **Intercept Log rows overlapped**: long ads wrapped past the fixed 40px row into the entry below; rows now size to their message.
+- Long custom signatures no longer run under the Threat Matrix mode column.
+- The Settings panel's slash-command list was missing `/cs safe`.
+
+### Changed
+- **~10x faster evaluation**: phrase rules are indexed by their first word, so a message is tested only against phrases that could start in it instead of all ~450 patterns (~350µs → ~35µs per clean message in offline benchmarks).
+- **12.x chat APIs**: filters register through `ChatFrameUtil.AddMessageEventFilter` and the chat box helpers use `ChatFrameUtil` and the edit box mixin, falling back to the `ChatFrame_*` / `ChatEdit_*` globals that 12.x keeps only as deprecation shims slated for removal next expansion.
+- Pass-through filter returns no longer re-pack every chat argument.
+- The release zip ships only `Media/icon.tga`; README and social-preview artwork (~3 MB) stays in the repo.
+
+---
+
 ## [1.7.9] - 2026-09-18
 
 ### Added

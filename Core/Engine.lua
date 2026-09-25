@@ -15,9 +15,52 @@ end
 
 -- Compiled Index Tables
 local exactWords = {}
+local leetExactWords = {} -- leet-decoded keys, checked against leet tokens only
 local containsList = {}
-local phraseList = {}
 local regexList = {}
+
+-- Phrase rules are bucketed by first word. A phrase pattern opens with
+-- %f[%w], so its first word can only match as a whole maximal %w run of the
+-- text; a message is tested against just the buckets for its own runs
+-- instead of all ~450 phrase patterns (which were ~95% of evaluation time).
+-- Phrases whose first word is not pure %w (non-ASCII) cannot be keyed that
+-- way and are always tested.
+local phraseByFirst = {}
+local phraseUnindexed = {}
+local phraseCount = 0
+
+local function CleanRuleText(text)
+    return (text:lower():gsub("[%p%c]", " "):gsub("%s+", " "):trim())
+end
+
+local function SplitWords(text)
+    local words = {}
+    for w in text:gmatch("%S+") do
+        words[#words + 1] = w
+    end
+    return words
+end
+
+local function PhrasePattern(words)
+    local escaped = {}
+    for i = 1, #words do
+        escaped[i] = EscapePattern(words[i])
+    end
+    return "%f[%w]" .. table.concat(escaped, "%s+") .. "%f[%W]"
+end
+
+local function IndexPhrase(firstWord, rule)
+    if firstWord:find("^%w+$") then
+        local bucket = phraseByFirst[firstWord]
+        if not bucket then
+            bucket = {}
+            phraseByFirst[firstWord] = bucket
+        end
+        bucket[#bucket + 1] = rule
+    else
+        phraseUnindexed[#phraseUnindexed + 1] = rule
+    end
+end
 
 -- Decision cache for repeat spam payloads, keyed by the raw message string
 -- itself (Lua interns strings, so lookups are O(1) with no collision risk).
@@ -54,41 +97,67 @@ end
 
 function E:RebuildIndex()
     table.wipe(exactWords)
+    table.wipe(leetExactWords)
     table.wipe(containsList)
-    table.wipe(phraseList)
+    table.wipe(phraseByFirst)
+    table.wipe(phraseUnindexed)
+    phraseCount = 0
     table.wipe(regexList)
     self:InvalidateCache()
+
+    local leet = CSPAM.Normalizer and CSPAM.Normalizer.ApplyLeetTranslation
 
     -- EXACT/PHRASE rule text is cleaned exactly like incoming messages
     -- (punctuation -> spaces), so both sides live in the same normalized
     -- space and rules like "m+ carry" or "pro-life" can actually match.
+    --
+    -- Messages are also matched in leet-decoded form, where digits, symbols
+    -- and 'v' all become letters. A rule containing any of them never matches
+    -- that form, so leet anywhere in a message hid it: "p0wer leveling"
+    -- decodes to "power leueling", "m+ b00st" to "mt boost". Rules therefore
+    -- get a decoded twin. Single words only get one when they are plain
+    -- letters: a rule deliberately written in leet ("d1e") decodes to an
+    -- ordinary word ("die") that must stay allowed.
     local function AddRule(text, mode, category, packName)
         if not text or text == "" then return end
         local modeUpper = (mode or "EXACT"):upper()
 
         if modeUpper == "EXACT" or modeUpper == "PHRASE" then
-            local cleanText = text:lower():gsub("[%p%c]", " "):gsub("%s+", " "):trim()
-            local words = {}
-            for w in cleanText:gmatch("%S+") do
-                words[#words + 1] = w
-            end
+            local cleanText = CleanRuleText(text)
+            local words = SplitWords(cleanText)
 
             if #words == 1 then
                 -- Single tokens match via the O(1) token set
-                exactWords[words[1]] = { text = text, mode = modeUpper, category = category, pack = packName }
+                local word = words[1]
+                local rule = { text = text, mode = modeUpper, category = category, pack = packName, bounded = true }
+                exactWords[word] = rule
+                local leetWord = leet and word:find("^%a+$") and leet(word)
+                if leetWord and leetWord ~= word then
+                    leetExactWords[leetWord] = rule
+                end
             elseif #words > 1 then
+                -- Decoded the way messages are: leet before punctuation cleanup
+                local leetText = leet and CleanRuleText(leet(text:lower()))
                 -- Multi-word entries (including multi-word EXACT input, which a
                 -- single whitespace-free token could never satisfy) compile to a
                 -- word-boundary-anchored phrase pattern
-                for i = 1, #words do
-                    words[i] = EscapePattern(words[i])
-                end
-                table.insert(phraseList, {
+                local rule = {
                     raw = text,
-                    pattern = "%f[%w]" .. table.concat(words, "%s+") .. "%f[%W]",
+                    pattern = PhrasePattern(words),
                     category = category,
                     pack = packName,
-                })
+                    bounded = true,
+                }
+                IndexPhrase(words[1], rule)
+
+                local leetWords = leetText and leetText ~= cleanText and SplitWords(leetText)
+                if leetWords and #leetWords > 1 then
+                    rule.leetPattern = PhrasePattern(leetWords)
+                    if leetWords[1] ~= words[1] then
+                        IndexPhrase(leetWords[1], rule)
+                    end
+                end
+                phraseCount = phraseCount + 1
             end
         elseif modeUpper == "CONTAINS" then
             local lowered = text:lower():trim()
@@ -281,8 +350,31 @@ local function FuzzyWordPattern(word)
     end))
 end
 
--- Electronic Jamming (Mask target words with asterisks)
-function E:MaskMessage(rawMessage, matchedText, norm)
+-- Character class for "part of a word" in the raw text: alphanumerics plus
+-- every symbol the leet map decodes to a letter, so "$ell" still reads as
+-- one word when it is bounded
+local wordClass = nil
+local function GetWordClass()
+    if not wordClass then
+        local symbols = {}
+        local map = CSPAM.Normalizer and CSPAM.Normalizer.LEET_MAP
+        if map then
+            for sym in pairs(map) do
+                if not sym:find("%w") then
+                    symbols[#symbols + 1] = EscapePattern(sym)
+                end
+            end
+        end
+        table.sort(symbols)
+        wordClass = "%w" .. table.concat(symbols)
+    end
+    return wordClass
+end
+
+-- Electronic Jamming (Mask target words with asterisks). EXACT and PHRASE
+-- matches are `bounded`: only whole words are censored, so masking "gold"
+-- leaves "Goldshire" alone. CONTAINS matches censor the substring anywhere.
+function E:MaskMessage(rawMessage, matchedText, norm, bounded)
     if not matchedText or matchedText == "" then return rawMessage end
 
     local extracted, links = norm.extracted, norm.links
@@ -294,7 +386,13 @@ function E:MaskMessage(rawMessage, matchedText, norm)
     end
     if #words == 0 then return rawMessage end
 
-    local masked, count = extracted:gsub(table.concat(words, "%s+"), function(found)
+    local pattern = table.concat(words, "%s+")
+    if bounded then
+        local class = GetWordClass()
+        pattern = "%f[" .. class .. "]" .. pattern .. "%f[^" .. class .. "]"
+    end
+
+    local masked, count = extracted:gsub(pattern, function(found)
         return string.rep("*", #found)
     end)
 
@@ -353,6 +451,40 @@ function E:LogIntercept(result, rawMessage, senderName, channelName)
     end
 end
 
+local function PhraseMatches(rule, cleaned, leetClean)
+    if cleaned:find(rule.pattern) then return true end
+    if leetClean then
+        if leetClean:find(rule.pattern) then return true end
+        if rule.leetPattern and leetClean:find(rule.leetPattern) then return true end
+    end
+    return false
+end
+
+local function FindPhraseInRuns(text, cleaned, leetClean)
+    for word in text:gmatch("%w+") do
+        local bucket = phraseByFirst[word]
+        if bucket then
+            for i = 1, #bucket do
+                if PhraseMatches(bucket[i], cleaned, leetClean) then
+                    return bucket[i]
+                end
+            end
+        end
+    end
+end
+
+local function FindPhrase(norm)
+    local cleaned, leetClean = norm.cleaned, norm.leetClean
+    for i = 1, #phraseUnindexed do
+        local rule = phraseUnindexed[i]
+        if PhraseMatches(rule, cleaned, leetClean) then
+            return rule
+        end
+    end
+    return FindPhraseInRuns(cleaned, cleaned, leetClean)
+        or (leetClean and FindPhraseInRuns(leetClean, cleaned, leetClean))
+end
+
 -- Full (uncached) rule evaluation; caches its verdict
 local function EvaluateFresh(self, rawMessage, senderName, channelName)
     local db = CSPAM.db
@@ -375,7 +507,7 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
     -- Check leet decoded tokens
     if not matchedRule and norm.leetTokens then
         for token, _ in pairs(norm.leetTokens) do
-            local rule = exactWords[token]
+            local rule = exactWords[token] or leetExactWords[token]
             if rule then
                 matchedRule = rule
                 matchedWord = token
@@ -384,14 +516,12 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
         end
     end
 
-    -- 2. Phrase Matching (compiled patterns)
-    if not matchedRule and #phraseList > 0 then
-        for _, rule in ipairs(phraseList) do
-            if norm.cleaned:find(rule.pattern) or (norm.leetClean and norm.leetClean:find(rule.pattern)) then
-                matchedRule = rule
-                matchedWord = rule.raw
-                break
-            end
+    -- 2. Phrase Matching (compiled patterns, first-word indexed)
+    if not matchedRule and phraseCount > 0 then
+        local rule = FindPhrase(norm)
+        if rule then
+            matchedRule = rule
+            matchedWord = rule.raw
         end
     end
 
@@ -425,7 +555,7 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
         local action = db.action or "HIDE"
         local maskedText = nil
         if action == "MASK" then
-            maskedText = self:MaskMessage(rawMessage, matchedWord, norm)
+            maskedText = self:MaskMessage(rawMessage, matchedWord, norm, matchedRule.bounded)
         end
 
         result = {

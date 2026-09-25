@@ -256,6 +256,66 @@ check("'lion's pride inn' passes ('pride month' is a phrase)",
 check("'sha of pride' passes",
     eval("farming sha of pride for the mount").shouldFilter == false)
 
+-- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
+-- decoded twin; without it, leet anywhere in the message hid them
+check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)
+check("leet 'v@nce' fires via the decoded twin of 'vance'", eval("v@nce 2028").shouldFilter == true)
+check("leet 's@ved heroic' fires", eval("s@ved heroic runs tonight").shouldFilter == true)
+check("'die' passes (the leet-spelled rule 'd1e' gets no twin)",
+    eval("dont die to the first mechanic").shouldFilter == false)
+
+-- Phrases are looked up by first word; every one must stay reachable, both
+-- as written and leet-spelled
+do
+    local function leetSpell(s) return (s:gsub("o", "0"):gsub("e", "3")) end
+    local missed, missedLeet = {}, {}
+    for packKey, pack in pairs(CSPAM.Packs) do
+        for _, w in ipairs(pack.words) do
+            local mode = w.mode:upper()
+            local cleaned = w.text:lower():gsub("[%p%c]", " "):gsub("%s+", " "):trim()
+            if (mode == "PHRASE" or mode == "EXACT") and cleaned:find(" ") then
+                if not eval("so " .. w.text .. " ok").shouldFilter then
+                    missed[#missed + 1] = w.text
+                end
+                if not eval("so " .. leetSpell(w.text:lower()) .. " ok").shouldFilter then
+                    missedLeet[#missedLeet + 1] = leetSpell(w.text:lower())
+                end
+            end
+        end
+    end
+    if #missed > 0 then print("      missed: " .. table.concat(missed, "; ")) end
+    if #missedLeet > 0 then print("      missed leet: " .. table.concat(missedLeet, "; ")) end
+    check("every phrase rule fires inside a sentence", #missed == 0)
+    check("every phrase rule fires leet-spelled (o->0, e->3)", #missedLeet == 0)
+end
+
+-- Escapes spliced in by the client or other addons never reach the matcher
+do
+    local N = CSPAM.Normalizer
+    local EMOJI = "|TInterface\\AddOns\\ElvUI\\Game\\Shared\\Media\\ChatEmojis\\Heart:16:16|t"
+    local n1 = N.NormalizeMessage(EMOJI .. " hello " .. EMOJI)
+    check("texture icon paths are not tokenized",
+        n1.tokens.elvui == nil and n1.tokens.interface == nil and n1.tokens.hello == true)
+    local n2 = N.NormalizeMessage("WTB |cnIQ4:|Hitem:212456::::::::80:::::|h[Everburning Ignition]|h|r pst")
+    check("named-color (|cnIQ4:) link is extracted whole",
+        #n2.links == 1 and n2.tokens.cniq4 == nil and n2.tokens.r == nil and n2.tokens.everburning == true)
+    check("keyword wrapped in another addon's color code still fires",
+        eval("|cffff0000trump|r rally tonight").shouldFilter == true)
+end
+
+-- MASK censors whole words for EXACT/PHRASE and substrings for CONTAINS
+CSPAM.db.action = "MASK"
+E:InvalidateCache()
+check("MASK leaves 'Goldshire' alone when censoring 'gold'",
+    eval("got gold near Goldshire").maskedText == "got **** near Goldshire")
+check("MASK keeps exact spacing around links",
+    eval("gold |cff0070dd|Hitem:19019::::::::80:::::|h[Thunderfury]|h|r pst").maskedText
+        == "**** |cff0070dd|Hitem:19019::::::::80:::::|h[Thunderfury]|h|r pst")
+check("MASK still censors CONTAINS matches inside words",
+    eval("clicky links here").maskedText == "clicky ****s here")
+CSPAM.db.action = "HIDE"
+E:InvalidateCache()
+
 -- Single-token rules from every pack share one index, so a term listed in two
 -- packs silently overwrites the first and pairs() order decides which pack
 -- the log credits. EXACT/PHRASE are compared in their cleaned form, the same
