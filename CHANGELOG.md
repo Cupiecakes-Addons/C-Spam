@@ -5,7 +5,7 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.8.0] - 2026-09-25
 
 ### Fixed
 - **Leet-spelled phrases slipped through**: messages are matched in leet-decoded form (digits, symbols and `v` become letters), but rules were only compiled as written, so any rule containing a `v`, a digit or a `+` stopped matching once the message used leet anywhere: `p0wer leveling`, `m+ b00st`, `s@ved heroic`, `v@nce` all passed. Rules now carry a decoded twin. Single-word rules deliberately written in leet (`d1e`) get none, so `die` stays allowed.
