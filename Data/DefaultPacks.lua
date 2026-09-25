@@ -28,6 +28,8 @@ CSPAM.Packs = {
             { text = "clinton", mode = "EXACT" },
             { text = "hillary", mode = "EXACT" },
             { text = "rfk jr", mode = "PHRASE" },
+            { text = "rfk", mode = "EXACT" },
+            { text = "rfkjr", mode = "EXACT" },
             { text = "vivek", mode = "EXACT" },
             { text = "haley", mode = "EXACT" },
             { text = "aoc", mode = "EXACT" },
@@ -36,6 +38,7 @@ CSPAM.Packs = {
             { text = "soros", mode = "EXACT" },
             { text = "netanyahu", mode = "EXACT" },
             { text = "xi jinping", mode = "PHRASE" },
+            { text = "president xi", mode = "PHRASE" },
             { text = "ted cruz", mode = "PHRASE" },
             { text = "whitmer", mode = "EXACT" },
             { text = "kemp", mode = "EXACT" },
@@ -131,6 +134,7 @@ CSPAM.Packs = {
             { text = "andrew tate", mode = "PHRASE" },
             { text = "sneako", mode = "EXACT" },
             { text = "fresh and fit", mode = "PHRASE" },
+            { text = "jordan peterson", mode = "PHRASE" },
             { text = "establishment shill", mode = "PHRASE" },
             { text = "fake news", mode = "PHRASE" },
             { text = "corporate media", mode = "PHRASE" },
@@ -175,6 +179,17 @@ CSPAM.Packs = {
             { text = "groyper", mode = "EXACT" },
             { text = "groypers", mode = "EXACT" },
             { text = "nick fuentes", mode = "PHRASE" },
+            { text = "drdisrespect", mode = "EXACT" },
+            { text = "dr disrespect", mode = "PHRASE" },
+            { text = "lowtiergod", mode = "EXACT" },
+            { text = "wingsofredemption", mode = "EXACT" },
+            -- Lolcow / mukbang drama. Both spellings of Nikocado turn up.
+            { text = "nikocado", mode = "EXACT" },
+            { text = "nickocado", mode = "EXACT" },
+            { text = "hungryfatchick", mode = "EXACT" },
+            { text = "hungryfatchicks", mode = "EXACT" },
+            { text = "lolcow", mode = "EXACT" },
+            { text = "lolcows", mode = "EXACT" },
             -- Israel / Gaza conflict
             { text = "israel", mode = "EXACT" },
             { text = "palestine", mode = "EXACT" },
@@ -185,6 +200,8 @@ CSPAM.Packs = {
             { text = "hezbollah", mode = "EXACT" },
             { text = "idf", mode = "EXACT" },
             { text = "gaza", mode = "EXACT" },
+            { text = "iran", mode = "EXACT" },
+            { text = "irans", mode = "EXACT" },
             { text = "dei", mode = "EXACT" },
             { text = "esg", mode = "EXACT" },
             { text = "crt", mode = "EXACT" },
@@ -198,6 +215,7 @@ CSPAM.Packs = {
             { text = "virtue signaling", mode = "PHRASE" },
             { text = "virtue signalling", mode = "PHRASE" },
             { text = "cancel culture", mode = "PHRASE" },
+            { text = "latinx", mode = "EXACT" },
             { text = "snowflake", mode = "EXACT" },
             { text = "psyop", mode = "EXACT" },
             { text = "psyops", mode = "EXACT" },
@@ -261,6 +279,8 @@ CSPAM.Packs = {
             { text = "epstein", mode = "EXACT" },
             { text = "politician", mode = "EXACT" },
             { text = "politicians", mode = "EXACT" },
+            { text = "politics", mode = "EXACT" },
+            { text = "political", mode = "EXACT" },
             { text = "presidential election", mode = "PHRASE" },
             { text = "war on drugs", mode = "PHRASE" },
         }
@@ -294,6 +314,7 @@ CSPAM.Packs = {
             { text = "gays", mode = "EXACT" },
             { text = "lesbian", mode = "EXACT" },
             { text = "lesbians", mode = "EXACT" },
+            { text = "wlw", mode = "EXACT" },
             { text = "queer", mode = "EXACT" },
             { text = "queers", mode = "EXACT" },
             { text = "lgbt", mode = "EXACT" },
@@ -323,11 +344,14 @@ CSPAM.Packs = {
             { text = "ftm", mode = "EXACT" },
             { text = "afab", mode = "EXACT" },
             { text = "amab", mode = "EXACT" },
+            { text = "bottom surgery", mode = "PHRASE" },
 
             -- Gender Presentation, Slang & Subculture Terms
             { text = "femboy", mode = "EXACT" },
             { text = "femboys", mode = "EXACT" },
             { text = "ladyboy", mode = "EXACT" },
+            { text = "butch", mode = "EXACT" },
+            { text = "butches", mode = "EXACT" },
             { text = "ladyboys", mode = "EXACT" },
             { text = "shemale", mode = "EXACT" },
             { text = "shemales", mode = "EXACT" },
@@ -500,6 +524,7 @@ CSPAM.Packs = {
             { text = "dungeon boost", mode = "PHRASE" },
             { text = "delve carry", mode = "PHRASE" },
             { text = "delve boost", mode = "PHRASE" },
+            { text = "delve carries", mode = "PHRASE" },
             { text = "tier 8 delve", mode = "PHRASE" },
             { text = "delves 8+", mode = "PHRASE" },
             { text = "wts delve", mode = "PHRASE" },
@@ -589,6 +614,10 @@ CSPAM.Packs = {
             { text = "huokan", mode = "CONTAINS" },
             { text = "sylvanas", mode = "EXACT" },
             { text = "nova booster", mode = "PHRASE" },
+            -- Raid-selling community ("<Northern Sky> Offers Heroic & Normal
+            -- raid runs every 2 hours!"). Also the name of the NSRT raid addon,
+            -- which trade chat calls "NSRT" rather than spelling out.
+            { text = "northern sky", mode = "PHRASE" },
             { text = "gallywix", mode = "CONTAINS" },
             { text = "w-t-s", mode = "CONTAINS" },
             { text = "w.t.s", mode = "CONTAINS" },
@@ -647,6 +676,9 @@ CSPAM.Packs = {
             { text = "free armor stacking", mode = "PHRASE" },
             { text = "free funnels", mode = "PHRASE" },
             { text = "loot trader", mode = "PHRASE" },
+            -- "WTS - Need The Hivemind? ... Quick mount run, hop in" (posted
+            -- 16 times in a week, Sep 2026)
+            { text = "quick mount run", mode = "PHRASE" },
             { text = "vip funnel", mode = "PHRASE" },
             { text = "full vip funnel", mode = "PHRASE" },
             { text = "vip run", mode = "PHRASE" },
@@ -834,11 +866,14 @@ CSPAM.Packs = {
             { text = "nigger", mode = "EXACT" },
             { text = "nigga", mode = "EXACT" },
             { text = "cunt", mode = "EXACT" },
+            { text = "cunty", mode = "EXACT" },
             { text = "git gud", mode = "PHRASE" },
             { text = "skill issue", mode = "PHRASE" },
             { text = "dogshit", mode = "EXACT" },
             { text = "shitter", mode = "EXACT" },
             { text = "shitters", mode = "EXACT" },
+            { text = "fatty", mode = "EXACT" },
+            { text = "manchild", mode = "EXACT" },
         }
     },
 
@@ -859,6 +894,19 @@ CSPAM.Packs = {
             { text = "gooning", mode = "EXACT" },
             { text = "goonin", mode = "EXACT" },
             { text = "goonery", mode = "EXACT" },
+            -- "anal" as a whole word only; "analysis"/"analyze" are other
+            -- tokens. No "kinks": "work out the kinks" is ordinary chat.
+            { text = "anal", mode = "EXACT" },
+            { text = "sex", mode = "EXACT" },
+            { text = "horny", mode = "EXACT" },
+            { text = "fap", mode = "EXACT" },
+            { text = "thicc", mode = "EXACT" },
+            { text = "kink", mode = "EXACT" },
+            { text = "kinky", mode = "EXACT" },
+            { text = "boner", mode = "EXACT" },
+            { text = "hooker", mode = "EXACT" },
+            { text = "hookers", mode = "EXACT" },
+            { text = "bhole", mode = "EXACT" },
             -- Stems, so the whole family (-ate/-ates/-ating/-ation/-ator) is
             -- one rule. No English word outside the family contains either.
             { text = "masturb", mode = "CONTAINS" },
@@ -1112,6 +1160,12 @@ CSPAM.Packs = {
             { text = "autofellatio", mode = "PHRASE" },
             { text = "sadomasochism", mode = "PHRASE" },
             { text = "impact toy", mode = "PHRASE" },
+            -- A phrase, never "booty" alone: that is Booty Bay
+            { text = "big booty", mode = "PHRASE" },
+            { text = "jerk off", mode = "PHRASE" },
+            { text = "jerking off", mode = "PHRASE" },
+            { text = "jerked off", mode = "PHRASE" },
+            { text = "jerked it", mode = "PHRASE" },
         }
     }
 }
