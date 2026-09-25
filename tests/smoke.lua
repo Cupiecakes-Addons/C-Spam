@@ -278,6 +278,23 @@ check("'LowTierGod' fires", eval("LowTierGod").shouldFilter == true)
 check("'Nickocado' misspelling fires", eval("Nickocado Avocado got better").shouldFilter == true)
 check("'fatty' fires", eval("get an education fatty").shouldFilter == true)
 
+-- Owner's calls on rules that hit ordinary chat (2026-09-25). Removed: WoW
+-- has a Hardcore game mode and Sylvanas is lore. Kept on purpose, even
+-- though they catch these lines: "woke" is a political term in any sense,
+-- and the boosting pack blocks all carry/achievement talk.
+check("'Classic Hardcore' passes ('hardcore' removed)",
+    eval("Classic Hardcore was pretty sick, there was a small RP scene too").shouldFilter == false)
+check("Sylvanas lore passes ('sylvanas' removed)",
+    eval("Why didn't Sylvanas burn Silvermoon too?").shouldFilter == false)
+check("'woke' fires even as a verb (kept by choice)",
+    eval("a chicken bone fell out and woke la magra up").shouldFilter == true)
+check("'aotc' fires in guild recruitment (kept by choice)",
+    eval("semi casual pve guild seeking dps for AOTC").shouldFilter == true)
+check("'power level' fires (kept by choice)",
+    eval("i am slamming tw dungeons to power level").shouldFilter == true)
+check("'ahead of the curve' fires (kept by choice)",
+    eval("is Ahead of the Curve still a thing?").shouldFilter == true)
+
 -- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
 -- decoded twin; without it, leet anywhere in the message hid them
 check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)
