@@ -7,3 +7,7 @@ ignore:
     - tests
     - scripts
     - dist
+    # Repo/README artwork; the game only loads Media/icon.tga
+    - Media/*.png
+    - Media/*.jpg
+    - Media/icon_64.tga

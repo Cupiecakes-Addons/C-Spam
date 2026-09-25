@@ -52,6 +52,12 @@ local function mockFrame(frameType, name, parent, template)
         function fs:SetJustifyH(j) end
         function fs:SetWordWrap(w) end
         function fs:GetStringWidth() return #self._text * 7 end
+        -- Wraps like a 12px-line font at ~5.5px per character
+        function fs:GetStringHeight()
+            if self._text == "" then return 0 end
+            local perLine = math.max(1, math.floor((self._w or 640) / 5.5))
+            return math.ceil(#self._text / perLine) * 12
+        end
         return fs
     end
     function f:CreateTexture(name, layer)
@@ -254,6 +260,24 @@ p3.scrollFrame:SetScript("OnMouseWheel", function(self, delta) scrolledDelta = d
 logRow:GetScript("OnMouseWheel")(logRow, -1)
 assert(scrolledDelta == -1, "Mouse wheel on log row must forward to p3.scrollFrame!")
 print("  -> All Tab 3 hyperlink & mousewheel tests passed!")
+
+print("Testing Tab 3 row heights follow wrapped message length...")
+table.insert(CSPAM.db.filteredLog, 1, {
+    timestamp = os.time(), sender = "Spammer", channel = "Trade", matched = "ksh", category = "Boosting",
+    message = string.rep("WTS heroic carry saved unsaved cheapest prices ", 6), -- ~290 chars, 3 wrapped lines
+})
+table.insert(CSPAM.db.filteredLog, 1, {
+    timestamp = os.time(), sender = "Spammer", channel = "Trade", matched = "gold", category = "Custom",
+    message = "short one",
+})
+CSPAM.UI:Refresh()
+local shortRow, longRow, nextRow = p3.logContent.rows[1], p3.logContent.rows[2], p3.logContent.rows[3]
+assert(shortRow._h == 40, "one-line entry keeps the 40px minimum, got " .. tostring(shortRow._h))
+assert(longRow._h > 40, "wrapped entry must grow past 40px, got " .. tostring(longRow._h))
+local function topOffset(row) local p = row._points[#row._points] return -p[3] end
+assert(topOffset(nextRow) == topOffset(longRow) + longRow._h + 2,
+    "row after a tall entry must start below it, not at a fixed 42px step")
+print("  -> Row heights: short=" .. shortRow._h .. " long=" .. longRow._h)
 
 print("Testing Window Dragging & Position Persistence...")
 local mf = CSPAM.UI.mainFrame

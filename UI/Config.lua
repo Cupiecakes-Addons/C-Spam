@@ -41,11 +41,15 @@ function Config:Register()
     helpText:SetPoint("TOPLEFT", 16, -150)
     helpText:SetWidth(560)
     helpText:SetJustifyH("LEFT")
-    helpText:SetText("Console Slash Commands:\n" ..
-        "  |cff00e5ff/cs|r or |cff00e5ff/cspam|r - Open Tactical Defense Console\n" ..
-        "  |cff00e5ff/cs toggle|r - Quick Arm / Disarm intercept system\n" ..
-        "  |cff00e5ff/cs add <word>|r - Quick register threat signature\n" ..
-        "  |cff00e5ff/cs stats|r - Output intercept telemetry & stats")
+    -- Same strings as the in-chat /cs help, so the two lists can't drift
+    helpText:SetText(table.concat({
+        "Console Slash Commands:",
+        L["SLASH_HELP_OPEN"],
+        L["SLASH_HELP_TOGGLE"],
+        L["SLASH_HELP_ADD"],
+        L["SLASH_HELP_SAFE"],
+        L["SLASH_HELP_STATS"],
+    }, "\n"))
 
     -- Modern Retail Settings API
     if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then

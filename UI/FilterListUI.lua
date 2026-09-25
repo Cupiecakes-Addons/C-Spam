@@ -1294,6 +1294,11 @@ function UI:Refresh()
 
                         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                         row.text:SetPoint("LEFT", 10, 0)
+                        -- Bounded short of the mode column: a long REGEX
+                        -- signature truncates instead of running under it
+                        row.text:SetWidth(320)
+                        row.text:SetJustifyH("LEFT")
+                        row.text:SetWordWrap(false)
 
                         row.mode = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                         row.mode:SetPoint("LEFT", 340, 0)
@@ -1427,11 +1432,16 @@ function UI:Refresh()
                 end
                 row.header:SetText(string.format("|cff888888[%s]|r |cff00e5ff[%s]|r %s (|cffff3b30Target: %s|r)%s", timeStr, entry.channel or "Sector", senderDisplay, entry.matched or "Threat", repeats))
                 row.msg:SetText(entry.message or "")
+                -- Spam ads routinely run past 200 characters and wrap; size
+                -- the row to its message so a long one can't spill over the
+                -- row beneath it (20 = header band, 6 = bottom padding)
+                local rowHeight = math.max(40, math.ceil(20 + (row.msg:GetStringHeight() or 0) + 6))
+                row:SetHeight(rowHeight)
                 row.entryTime = entry.timestamp
                 row.ageText = nil -- pooled row: force a repaint for its new entry
                 SetRowAge(row, now)
                 row:Show()
-                y = y + 42
+                y = y + rowHeight + 2
             end
         else
             if p3.emptyMsg then p3.emptyMsg:Show() end

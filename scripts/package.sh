@@ -40,6 +40,9 @@ rsync -a \
     --exclude 'scripts' \
     --exclude 'tests' \
     --exclude '*.bak*' \
+    --exclude 'Media/*.png' \
+    --exclude 'Media/*.jpg' \
+    --exclude 'Media/icon_64.tga' \
     ./ dist/C-Spam/
 
 (cd dist && zip -rq "${ARCHIVE_NAME}" C-Spam)

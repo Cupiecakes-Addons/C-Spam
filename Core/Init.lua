@@ -60,16 +60,22 @@ local function CopyDefaults(src, dst)
     return dst
 end
 
+-- The ChatEdit_* globals are 12.x deprecation shims over ChatFrameUtil and
+-- the edit box mixin; prefer the replacements while they are both around
 local function ClearActiveChatEditBox(editBox)
-    local eb = editBox or (ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()) or (SELECTED_CHAT_FRAME and SELECTED_CHAT_FRAME.editBox) or (DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.editBox)
+    local getActive = (ChatFrameUtil and ChatFrameUtil.GetActiveWindow) or ChatEdit_GetActiveWindow
+    local deactivate = (ChatFrameUtil and ChatFrameUtil.DeactivateChat) or ChatEdit_DeactivateChat
+    local eb = editBox or (getActive and getActive()) or (SELECTED_CHAT_FRAME and SELECTED_CHAT_FRAME.editBox) or (DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.editBox)
     if eb then
-        if ChatEdit_ClearChat then
+        if eb.ClearChat then
+            eb:ClearChat()
+        elseif ChatEdit_ClearChat then
             ChatEdit_ClearChat(eb)
         else
             eb:SetText("")
         end
-        if ChatEdit_DeactivateChat then
-            ChatEdit_DeactivateChat(eb)
+        if deactivate then
+            deactivate(eb)
         else
             eb:Hide()
         end
@@ -229,6 +235,8 @@ initFrame:RegisterEvent("PLAYER_LOGIN")
 
 initFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and (arg1 == addonName or arg1 == "CSPAM" or arg1 == "C-SPAM") then
+        -- Every other addon's load fires this too; ours is the only one we need
+        self:UnregisterEvent("ADDON_LOADED")
         InitializeAddon()
         DEFAULT_CHAT_FRAME:AddMessage(string.format(L["ADDON_LOADED"], CSPAM.Version))
     elseif event == "PLAYER_LOGIN" then
