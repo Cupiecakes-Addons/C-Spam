@@ -256,6 +256,28 @@ check("'lion's pride inn' passes ('pride month' is a phrase)",
 check("'sha of pride' passes",
     eval("farming sha of pride for the mount").shouldFilter == false)
 
+-- Signatures from the Sep 18-25 2026 chat log, with the near misses they
+-- must leave alone
+check("'Anal <spell>' spam fires", eval("Anal Obliterate").shouldFilter == true)
+check("'horny' fires", eval("please stop being horny in trade chat").shouldFilter == true)
+check("'big booty' fires", eval("any big booty latinas").shouldFilter == true)
+check("'Booty Bay' passes ('booty' is only a phrase)",
+    eval("meet me in booty bay for the pirate event").shouldFilter == false)
+check("'work out the kinks' passes (no 'kinks' rule)",
+    eval("still working out the kinks in my rotation").shouldFilter == false)
+check("'butcher' passes ('butch' is EXACT)", eval("the butcher in stormwind has meat").shouldFilter == false)
+check("'delve carries' fires", eval("WTS T11 DELVE CARRIES YOUR PREFERENCE /w").shouldFilter == true)
+check("mount-run ad fires",
+    eval("WTS - Need The Hivemind ? Don't lose your mind! Quick mount run, hop in and you'll find. /w").shouldFilter == true)
+check("Northern Sky raid-run ad fires",
+    eval("<Northern Sky> Offers Heroic & Normal raid runs every 2 hours!").shouldFilter == true)
+check("'RFKJR' fires as one word", eval("if u trust RFKJR ur a drone").shouldFilter == true)
+check("'jordan peterson' fires", eval("jordan peterson brainwashed him").shouldFilter == true)
+check("'latinx' fires", eval("Latinx is just dumb in general").shouldFilter == true)
+check("'LowTierGod' fires", eval("LowTierGod").shouldFilter == true)
+check("'Nickocado' misspelling fires", eval("Nickocado Avocado got better").shouldFilter == true)
+check("'fatty' fires", eval("get an education fatty").shouldFilter == true)
+
 -- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
 -- decoded twin; without it, leet anywhere in the message hid them
 check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)

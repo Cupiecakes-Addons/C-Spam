@@ -5,6 +5,18 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+Signatures from replaying the Sep 18–25 chat log (3,301 public-channel messages) through v1.8.0. Together they catch 107 more of those messages, and nothing previously caught is lost.
+- **Carries, Boosting & Gold Seller Spam (`boosting`)**: `delve carries`; `quick mount run` (a mount-run ad posted 16 times in one week); `northern sky` (a raid-run community ad).
+- **Political Discourse & Elections (`politics`)**: `rfk`, `rfkjr`, `president xi`, `iran`, `irans`, `latinx`, `jordan peterson`, `politics`, `political`. Drama personalities: `drdisrespect`, `dr disrespect`, `lowtiergod`, `wingsofredemption`, `nikocado`, `nickocado`, `hungryfatchick`, `hungryfatchicks`, `lolcow`, `lolcows`.
+- **Sexuality, Gender & Identity (`sexuality`)**: `wlw`, `butch`, `butches`, `bottom surgery`.
+- **Toxicity, Harassment & Hostile Slurs (`toxicity`)**: `cunty`, `fatty`, `manchild`.
+- **Explicit & NSFW Chat (`nsfw`)**: `anal` (one player posted ~35 "Anal <spell name>" lines), `sex`, `horny`, `fap`, `thicc`, `kink`, `kinky`, `boner`, `hooker`, `hookers`, `bhole`, `big booty`, `jerk off`, `jerking off`, `jerked off`, `jerked it`. Deliberately left out: `booty` on its own (Booty Bay) and `kinks` ("work out the kinks").
+
+---
+
 ## [1.8.0] - 2026-09-25
 
 ### Fixed
