@@ -5,7 +5,7 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.9.0] - 2026-09-25
 
 ### Added
 - **New pack: Erotic Roleplay & Solicitation (`erp`)**, on by default. It covers asking for or staging sex over chat, while `nsfw` keeps explicit language, acts and anatomy. New signatures: `erp` and its forms (`erping`, `erper`…), `e-rp`, `erotic roleplay`, `erotic rp`, `dirty rp`, `lewd`, `cybered`, `sexting` and its forms, `edate`/`e-date`/`e-dating` and their forms, `grindr`, `lf gf`, `lf bf`, `looking for a gf`/`bf`, `lf goth women`, `lf goth girl`, `drac girl`.
