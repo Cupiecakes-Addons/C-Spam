@@ -3,7 +3,7 @@
 ## Title: |cffff3b30C-SPAM|r |cff00e5ff[Chat Intercept System]|r
 ## Notes: Automated chat threat interceptor (C-RAM inspired). Eliminates political noise, gold spam, and toxic keywords before reaching your chat.
 ## Author: Brandon
-## Version: 1.8.2
+## Version: 1.8.3
 ## SavedVariables: CSPAM_DB
 ## IconTexture: Interface\AddOns\C-Spam\Media\icon.tga
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
