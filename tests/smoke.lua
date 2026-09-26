@@ -278,6 +278,17 @@ check("'LowTierGod' fires", eval("LowTierGod").shouldFilter == true)
 check("'Nickocado' misspelling fires", eval("Nickocado Avocado got better").shouldFilter == true)
 check("'fatty' fires", eval("get an education fatty").shouldFilter == true)
 
+-- Sugar dating and daddy/mommy slang, without the ordinary words inside them
+check("'daddy' fires", eval("seeing daddy denathrius again").shouldFilter == true)
+check("'sugar daddy' fires via the daddy token", eval("LF sugar daddy pst").shouldFilter == true)
+check("'sugar baby' fires", eval("looking for a sugar baby").shouldFilter == true)
+check("'sugarbaby' fires as one word", eval("any sugarbaby on").shouldFilter == true)
+check("stretched 'mommyyy' fires (repeat collapse)", eval("goth mommyyy").shouldFilter == true)
+check("'sugar' alone passes (a character name)", eval("what about sugar").shouldFilter == false)
+check("'baby murloc' passes", eval("wts baby murloc pet").shouldFilter == false)
+check("'stepsister' passes (only the slang forms are rules)",
+    eval("my stepsister plays a paladin").shouldFilter == false)
+
 -- Owner's calls on rules that hit ordinary chat (2026-09-25). Removed: WoW
 -- has a Hardcore game mode and Sylvanas is lore. Kept on purpose, even
 -- though they catch these lines: "woke" is a political term in any sense,

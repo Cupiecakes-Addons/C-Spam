@@ -906,6 +906,23 @@ CSPAM.Packs = {
             { text = "hooker", mode = "EXACT" },
             { text = "hookers", mode = "EXACT" },
             { text = "bhole", mode = "EXACT" },
+            -- Sugar dating, daddy/mommy and paid-kink slang. The daddy/mommy
+            -- tokens already cover "sugar daddy"/"sugar mommy"; "sugar" and
+            -- "baby" alone stay allowed (both turn up as character names).
+            -- "findom" and "ddlg" live with the stems below.
+            { text = "daddy", mode = "EXACT" },
+            { text = "daddies", mode = "EXACT" },
+            { text = "mommy", mode = "EXACT" },
+            { text = "mommies", mode = "EXACT" },
+            { text = "zaddy", mode = "EXACT" },
+            { text = "sugardaddy", mode = "EXACT" },
+            { text = "sugarbaby", mode = "EXACT" },
+            { text = "sugarmommy", mode = "EXACT" },
+            { text = "sugarmama", mode = "EXACT" },
+            { text = "paypig", mode = "EXACT" },
+            { text = "paypigs", mode = "EXACT" },
+            { text = "stepbro", mode = "EXACT" },
+            { text = "stepsis", mode = "EXACT" },
             -- Stems, so the whole family (-ate/-ates/-ating/-ation/-ator) is
             -- one rule. No English word outside the family contains either.
             { text = "masturb", mode = "CONTAINS" },
@@ -1164,6 +1181,13 @@ CSPAM.Packs = {
             { text = "jerking off", mode = "PHRASE" },
             { text = "jerked off", mode = "PHRASE" },
             { text = "jerked it", mode = "PHRASE" },
+            { text = "sugar baby", mode = "PHRASE" },
+            { text = "sugar babies", mode = "PHRASE" },
+            { text = "sugar mama", mode = "PHRASE" },
+            { text = "sugar momma", mode = "PHRASE" },
+            { text = "pay pig", mode = "PHRASE" },
+            { text = "step bro", mode = "PHRASE" },
+            { text = "step sis", mode = "PHRASE" },
         }
     }
 }
