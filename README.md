@@ -29,7 +29,9 @@
   - 🏛️ **Political Discourse**: Candidates, elections, partisan arguments, extremist movements, culture-war buzzwords, and rage-bait streamers.
   - 💰 **Carries, Boosting & Gold Spam**: M+ carry ads, raid loot sales, AFK leveling, and external Discord/gold seller links.
   - 🚫 **Toxicity & Hostile Slurs**: Severe harassment, toxicity, and unmoderated hate speech.
+  - 🏳️‍🌈 **Sexuality, Gender & Identity**: Orientation and gender-identity terms and culture-war debate phrases.
   - 🔞 **Explicit & NSFW Chat**: Sex acts, anatomical slang, fetishes, and strong profanity.
+  - 💋 **Erotic Roleplay & Solicitation**: ERP invitations, cybersex and sexting, e-dating and hookup requests, sugar dating, and role-based kink.
 - 🛡️ **IFF Safe Allies (Bypasses)**: Automatic bypasses for Battle.net/character Friends, Guildmates, and Party/Raid group members.
 - 📡 **Monitored Airspace**: Per-channel radar toggles for Public Channels (Trade, Services, General, LFG), Communities, Local Say/Yell, and Direct Whispers.
 - 🎯 **Dual Engagement Protocols**:
