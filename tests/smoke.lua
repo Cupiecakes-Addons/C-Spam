@@ -29,7 +29,7 @@ loadaddon("Core/Engine.lua")
 CSPAM.db = {
     enabled = true,
     action = "HIDE",
-    packs = { politics = true, sexuality = true, boosting = true, toxicity = true, nsfw = true },
+    packs = { politics = true, sexuality = true, boosting = true, toxicity = true, nsfw = true, erp = true },
     customWords = {
         { text = "link", mode = "CONTAINS", enabled = true },
         { text = "gold", mode = "EXACT", enabled = true },
@@ -288,6 +288,32 @@ check("'sugar' alone passes (a character name)", eval("what about sugar").should
 check("'baby murloc' passes", eval("wts baby murloc pet").shouldFilter == false)
 check("'stepsister' passes (only the slang forms are rules)",
     eval("my stepsister plays a paladin").shouldFilter == false)
+
+-- ERP pack: its own signatures, plus the terms moved out of nsfw, must be
+-- credited to it
+do
+    local ERP = CSPAM.Packs.erp.name
+    local function erpHit(msg)
+        local r = eval(msg)
+        return r.shouldFilter == true and r.category == ERP
+    end
+    check("'erp' fires in the ERP pack", erpHit("LF ERP pst"))
+    check("'e-rp' fires", erpHit("anyone down for e-rp"))
+    check("'lf gf' fires", erpHit("lf gf must be nice"))
+    check("'edate' fires", erpHit("looking to edate someone"))
+    check("'sexting' fires", erpHit("stop sexting in trade"))
+    check("moved 'daddy' is credited to ERP", erpHit("Tank Daddy LF Mythic+ Sugar Baby PST!!"))
+    check("moved 'pet play' is credited to ERP", erpHit("into pet play"))
+    check("moved 'findom' is credited to ERP", erpHit("findom queen here"))
+end
+check("'sextant' passes ('sext' is whole-word now)", eval("need a brass sextant for the quest").shouldFilter == false)
+check("'masterball' passes (misspellings are whole words now)",
+    eval("whats yalls rank on pokemon rn im masterball").shouldFilter == false)
+check("'condom' fires", eval("dumb enough to boink without a condom").shouldFilter == true)
+check("'getting laid' fires", eval("Getting laid").shouldFilter == true)
+check("'fetishize' fires via the stem", eval("claim they are goth to fetishize it").shouldFilter == true)
+check("'Asmondgold' misspelling fires", eval("Asmondgold is a roach").shouldFilter == true)
+check("'elon' fires", eval("Elon is a tool").shouldFilter == true)
 
 -- Owner's calls on rules that hit ordinary chat (2026-09-25). Removed: WoW
 -- has a Hardcore game mode and Sylvanas is lore. Kept on purpose, even

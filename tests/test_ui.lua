@@ -146,7 +146,7 @@ loadaddon("UI/FilterListUI.lua")
 CSPAM.db = {
     enabled = true,
     action = "HIDE",
-    packs = { politics = true, sexuality = true, boosting = false, toxicity = true, nsfw = true },
+    packs = { politics = true, sexuality = true, boosting = false, toxicity = true, nsfw = true, erp = true },
     customWords = {},
     whitelist = { friends = true, guild = true, party = true, characters = {} },
     channelGroups = {},
@@ -169,7 +169,12 @@ assert(p2.cardsScrollFrame:GetVerticalScroll() == 30, "cardsScrollFrame should s
 p2.cardsScrollFrame:GetScript("OnMouseWheel")(p2.cardsScrollFrame, 1)
 assert(p2.cardsScrollFrame:GetVerticalScroll() == 0, "cardsScrollFrame should scroll back to 0px!")
 
-for _, packKey in ipairs({ "politics", "sexuality", "boosting", "toxicity", "nsfw" }) do
+-- Every pack, in card order, so a newly added pack is covered automatically
+local allPackKeys = {}
+for key in pairs(CSPAM.Packs) do allPackKeys[#allPackKeys + 1] = key end
+table.sort(allPackKeys, function(a, b) return CSPAM.Packs[a].order < CSPAM.Packs[b].order end)
+assert(p2.packCheckboxes.erp, "the erp pack has no card on the Defense Packs tab")
+for _, packKey in ipairs(allPackKeys) do
     local pack = CSPAM.Packs[packKey]
     print(string.format("Testing ShowDetail for pack '%s' (%d words)...", packKey, #pack.words))
     local ok, err = pcall(function()
