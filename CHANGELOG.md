@@ -5,6 +5,25 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - 2026-11-06
+
+### Added
+Signatures from the November 2026 U.S. Midterm elections, the U.S.–Iran and Middle East conflicts, and replaying the Sep 26 – Nov 5 chat log (5,399 public-channel messages) through v1.10.0.
+- **Political Discourse & Elections (`politics`)**:
+  - **Midterms, elections & voting**: `midterm` (singular), `ballots` (plural), `blue wave`, `red wave`, `swing state`, `swing states`, `voter id`, `voter suppression`, `election integrity`, `election interference`, `rigged election`, `election denier`, `election deniers`, `popular vote`, `exit poll`, `exit polls`, `gerrymander`, `gerrymandered`, `redistricting`, `super pac`, `super pacs`, `rnc`, `green party`, `jill stein`.
+  - **2026 midterm figures, congressional leaders, governors & cabinet**: `hakeem jeffries`, `mike johnson`, `john thune`, `talarico`, `james talarico`, `ken paxton`, `paxton`, `greg abbott`, `susan collins`, `troy jackson`, `sherrod brown`, `jon husted`, `husted`, `roy cooper`, `ossoff`, `jon ossoff`, `warnock`, `peltola`, `mary peltola`, `dan sullivan`, `el-sayed`, `abdul el-sayed`, `mallory mcmorrow`, `fetterman`, `josh shapiro`, `pritzker`, `beshear`, `hochul`, `mamdani`, `marjorie taylor greene`, `boebert`, `boboert`, `lauren boebert`, `matt gaetz`, `gaetz`, `ilhan omar`, `rashida tlaib`, `tlaib`, `lindsey graham`, `tom cotton`, `rand paul`, `josh hawley`, `mitt romney`, `liz cheney`, `dick cheney`, `marco rubio`, `rubio`, `pete hegseth`, `hegseth`, `tulsi gabbard`, `tulsi`, `gabbard`, `kristi noem`, `noem`, `pam bondi`, `kash patel`, `stephen miller`, `steve bannon`, `bannon`, `fauci`, plus plural/possessive forms `trumps`, `bidens`, `obamas`, `clintons` and world leaders `bolsonaro`, `maduro`, `kim jong un`, `lukashenko`, `modi`, `khamenei`, `ayatollah`.
+  - **Congress, constitution, tariffs & immigration**: `senator`, `senators`, `congressman`, `congressmen`, `congresswoman`, `congresswomen`, `congressional`, `house speaker`, `speaker of the house`, `bipartisan`, `impeach`, `impeached`, `first amendment`, `fifth amendment`, `25th amendment`, `martial law`, `january 6`, `agenda 47`, `trump 2028`, `third term`, `tariff` (singular), `border czar`, `deport`, `deported`, `deporting`, `deportation`, `deportations`, `ice raid`, `ice raids`, `illegal alien`, `illegal aliens`, `illegal immigrant`, `illegal immigrants`, `undocumented immigrant`, `undocumented immigrants`.
+  - **U.S.–Iran & Israel/Palestine conflict inflections**: `israeli`, `israelis`, `isreal` (common misspelling), `palestinian`, `palestinians`, `iranian`, `iranians`, `tehran`, `hormuz`, `strait of hormuz`, `houthi`, `houthis`, `west bank`, `intifada`.
+  - **Ideologies, plurals, pundits & gender-war slang**: `libertarians`, `libertarianism`, `socialists`, `communists`, `marxists`, `fascists`, `authoritarians`, `authoritarianism`, `neoliberals`, `neoliberalism`, `liberalism`, `conservatism`, `libtards`, `bootlickers`, `neonazis`, `rinos`, `far-left`, `left-wing`, `right-wing`, `leftwing`, `rightwing`, `oligarch`, `oligarchs`, `oligarchy`, `christofascist`, `christofascism`, `christian nationalist`, `christian nationalism`, `chud`, `chuds`, `chudmax` (stem covering `chudmaxxing`), `misogyny`, `misogynist`, `misogynists`, `misogynistic`, `misandry`, `misandrist`, `misandrists`, `patriarchy`, `patriarchal`, `hasan`, `ben shapiro`, `matt walsh`, `candace owens`, `tucker carlson`, `alex jones`, `laura loomer`, `loomer`, `tim pool`, `steven crowder`. (`mog`/`mogging` remains excluded as WoW transmog slang.)
+- **Sexuality, Gender & Identity (`sexuality`)**: `lesbianism`, one-word forms `transwoman`, `transwomen`, `transman`, `transmen`, and phrases `cis woman`, `cis women`, `cis man`, `cis men`.
+- **Erotic Roleplay & Solicitation (`erp`)**: `glucose guardian`, `glucose guardians`, `glucoseguardian`, `discord kitten`, `discord kittens`.
+- **Explicit & NSFW Chat (`nsfw`)**: `futa`, `futas`, `futanari`, `footjob`, `pawjob`, `titjob`, `boobjob`, `feet pics`, `foot pics`.
+
+### Fixed
+- **`semen` matched inside "basement", "basements" and "horsemen"** (e.g. "my basement", "Four Horsemen"). It is now a whole-word `EXACT` rule instead of `CONTAINS`.
+
+---
+
 ## [1.10.0] - 2026-11-06
 
 ### Added
