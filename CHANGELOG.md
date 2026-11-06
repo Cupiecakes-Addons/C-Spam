@@ -5,7 +5,7 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.10.0] - 2026-11-06
 
 ### Added
 - **WoW Forever support.** C-SPAM now loads on the WoW Forever client (1.60.1, interface `16001`) as well as Retail. It is one download for both: the TOC lists `120105, 16001`, and the release's `release.json` offers the same zip as the `mainline` and `forever` flavors, so WowUp installs and updates it on either client from this repo. Forever is built on the Retail client, and its chat-filter pipeline, chat event arguments, and friends, Battle.net and guild APIs match 12.1.5, so no filtering code changed.
