@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.."
 
 VERSION=$(grep '^## Version:' C-Spam.toc | head -1 | awk '{print $3}')
 # Every interface number on the line, e.g. "120105, 16001" -> "120105 16001"
-INTERFACES=$(grep '^## Interface:' C-Spam.toc | head -1 | sed -e 's/^## Interface://' -e 's/\r//g' | tr ',' ' ')
+INTERFACES=$(grep '^## Interface:' C-Spam.toc | head -1 | sed -e 's/^## Interface://' -e 's/\r//g' | tr ',' ' ' | xargs)
 
 if [ -z "$VERSION" ]; then
     echo "Error: Could not extract Version from C-Spam.toc" >&2
