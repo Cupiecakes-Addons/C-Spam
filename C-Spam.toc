@@ -1,5 +1,6 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Interface-Retail: 120105
+## Interface-Forever: 16001
 ## Title: |cffff3b30C-SPAM|r |cff00e5ff[Chat Intercept System]|r
 ## Notes: Automated chat threat interceptor (C-RAM inspired). Eliminates political noise, gold spam, and toxic keywords before reaching your chat.
 ## Author: Cupiecakes

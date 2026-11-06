@@ -1,7 +1,8 @@
 # <img src="Media/logo.png" width="36" height="36" align="center" /> C-SPAM: Counter-Spam Phalanx System
 
 [![WoW Retail](https://img.shields.io/badge/WoW%20Retail-12.1.5%20%2F%2011.x-00e5ff.svg)](https://worldofwarcraft.com)
-[![Interface](https://img.shields.io/badge/Interface-120105-brightgreen.svg)]()
+[![WoW Forever](https://img.shields.io/badge/WoW%20Forever-1.60.1-00e5ff.svg)](https://worldofwarcraft.com)
+[![Interface](https://img.shields.io/badge/Interface-120105%20%7C%2016001-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)]()
 [![Design](https://img.shields.io/badge/Style-Tactical%201px-ff3b30.svg)]()
 
@@ -55,9 +56,13 @@
 
 ## 📥 Installation
 
-**From a packaged release (recommended):**
-1. Grab the latest zip from the [GitHub Releases](https://github.com/Cupiecakes-Addons/C-Spam/releases) page (WowUp can also install from the repo URL once a release exists).
-2. Extract it straight into `World of Warcraft\_retail_\Interface\AddOns\` — you end up with `Interface\AddOns\C-Spam\C-Spam.toc`. LibStub / LibDataBroker / LibDBIcon are bundled for ElvUI & minimap-bar integration.
+C-SPAM runs on **Retail** and **WoW Forever** from the same download. Forever is built on the Retail client, so its chat-filter, friends and guild APIs are the same ones C-SPAM already uses.
+
+**With WowUp (recommended):** choose the client (Retail or Forever) in WowUp, then use **Install from URL** with `https://github.com/Cupiecakes-Addons/C-Spam`. Each client gets the same release zip and updates on its own.
+
+**From a packaged release:**
+1. Grab the latest `C-Spam-vX.Y.Z.zip` from the [GitHub Releases](https://github.com/Cupiecakes-Addons/C-Spam/releases) page.
+2. Extract it straight into the client's AddOns folder, `World of Warcraft\_retail_\Interface\AddOns\` or `World of Warcraft\_forever_\Interface\AddOns\`. You end up with `Interface\AddOns\C-Spam\C-Spam.toc`. LibStub / LibDataBroker / LibDBIcon are bundled for ElvUI & minimap-bar integration.
 
 **From source (git checkout):**
 1. Clone or copy this repository into `Interface\AddOns\` and make sure the folder is named exactly `C-Spam` — WoW only loads `<Folder>\<Folder>.toc`. The checkout is a complete addon (libraries are vendored in `Libs/`).
