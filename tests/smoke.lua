@@ -332,6 +332,49 @@ check("'power level' fires (kept by choice)",
 check("'ahead of the curve' fires (kept by choice)",
     eval("is Ahead of the Curve still a thing?").shouldFilter == true)
 
+-- Nov 2026 midterm elections & Sep 26 - Nov 5 2026 chat log review (v1.10.1)
+check("'midterm' singular fires", eval("watching the midterm results").shouldFilter == true)
+check("'ballots' plural fires", eval("counting the ballots").shouldFilter == true)
+check("'tariff' singular fires", eval("new tariff announced").shouldFilter == true)
+check("phrase 'blue wave' fires", eval("big blue wave last night").shouldFilter == true)
+check("'redistricting' fires", eval("mid-decade redistricting battle").shouldFilter == true)
+check("'talarico' fires", eval("Talarico won Texas").shouldFilter == true)
+check("phrase 'hakeem jeffries' fires", eval("Hakeem Jeffries is the new speaker").shouldFilter == true)
+check("'israeli' fires", eval("under israeli occupation").shouldFilter == true)
+check("'isreal' misspelling fires", eval("this time in Isreal History").shouldFilter == true)
+check("'palestinian' fires", eval("Palestinian children are going to grow up").shouldFilter == true)
+check("'iranian' fires", eval("iranian oil tankers").shouldFilter == true)
+check("phrase 'strait of hormuz' fires", eval("closing the strait of hormuz").shouldFilter == true)
+check("'libertarians' plural fires", eval("Libertarians are like house cats").shouldFilter == true)
+check("phrase 'green party' fires", eval("the green party in the US").shouldFilter == true)
+check("phrase 'jill stein' fires", eval("I think Jill Stein killed it").shouldFilter == true)
+check("'chuds' fires", eval("All the non-chuds").shouldFilter == true)
+check("'chudmaxxing' fires via chudmax stem", eval("every guild i join is just chudmaxxing fr").shouldFilter == true)
+check("'misogyny' fires", eval("both are negative, but misogyny is worse").shouldFilter == true)
+check("'misandry' fires", eval("if i do even one little misandry").shouldFilter == true)
+check("'patriarchal' fires", eval("your patriarchal attitude is showing").shouldFilter == true)
+check("'hasan' alone fires", eval("hasan's dog did nothing wrong").shouldFilter == true)
+check("'boboert' misspelling fires", eval("HASH TAG LAUREN BOBOERT DID NOTHING WRONG").shouldFilter == true)
+check("'bolsonaro' fires", eval("bolsonaro should go to jail").shouldFilter == true)
+check("'maduro' fires", eval("the plane that got maduro").shouldFilter == true)
+check("'transwomen' one-word fires", eval("Transwomen are cute").shouldFilter == true)
+check("phrase 'cis women' fires", eval("WoW is FULL of cis women").shouldFilter == true)
+check("'lesbianism' fires", eval("Never do lesbianism for free").shouldFilter == true)
+check("phrase 'glucose guardian' fires in ERP pack",
+    eval("Glucose Guardian is a new one").category == CSPAM.Packs.erp.name)
+check("phrase 'discord kitten' fires in ERP pack",
+    eval("looking for a discord kitten").category == CSPAM.Packs.erp.name)
+check("'futa' fires", eval("Futa mentioned").shouldFilter == true)
+check("'pawjob' fires", eval("banned puppygirl pawjob from the beta").shouldFilter == true)
+check("phrase 'feet pics' fires", eval("WTB feet pics for gold").shouldFilter == true)
+check("'semen' alone still fires (EXACT)", eval("covered in semen").shouldFilter == true)
+check("'basement' passes ('semen' is EXACT, not CONTAINS)",
+    eval("my basement").shouldFilter == false)
+check("'basements' passes",
+    eval("people who live in basements").shouldFilter == false)
+check("'Four Horsemen' passes ('semen' is EXACT)",
+    eval("pulling the Four Horsemen in Naxx").shouldFilter == false)
+
 -- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
 -- decoded twin; without it, leet anywhere in the message hid them
 check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)
