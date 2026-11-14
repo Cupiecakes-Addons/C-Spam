@@ -272,6 +272,11 @@ check("mount-run ad fires",
 check("Northern Sky raid-run ad fires",
     eval("<Northern Sky> Offers Heroic & Normal raid runs every 2 hours!").shouldFilter == true)
 check("'RFKJR' fires as one word", eval("if u trust RFKJR ur a drone").shouldFilter == true)
+check("'rfk jr' fires", eval("RFK Jr is running again").shouldFilter == true)
+check("'RFK' passes (Razorfen Kraul)", eval("LF2M dps/healer for RFK pst").shouldFilter == false)
+check("'g2g' passes (good to go)", eval("lf tank gnomer then g2g").shouldFilter == false)
+check("'g2g.com' fires", eval("best prices on G2G.com").matchedWord == "g2g com")
+check("'g2g . com' fires", eval("best prices on g2g . com").matchedWord == "g2g com")
 check("'jordan peterson' fires", eval("jordan peterson brainwashed him").shouldFilter == true)
 check("'latinx' fires", eval("Latinx is just dumb in general").shouldFilter == true)
 check("'LowTierGod' fires", eval("LowTierGod").shouldFilter == true)

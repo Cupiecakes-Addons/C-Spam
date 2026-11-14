@@ -31,8 +31,8 @@ CSPAM.Packs = {
             { text = "clinton", mode = "EXACT" },
             { text = "clintons", mode = "EXACT" },
             { text = "hillary", mode = "EXACT" },
+            -- No bare "rfk": it's Razorfen Kraul in LFG (WoW Forever, Classic).
             { text = "rfk jr", mode = "PHRASE" },
-            { text = "rfk", mode = "EXACT" },
             { text = "rfkjr", mode = "EXACT" },
             { text = "vivek", mode = "EXACT" },
             { text = "haley", mode = "EXACT" },
@@ -788,7 +788,10 @@ CSPAM.Packs = {
             { text = "skycoach", mode = "CONTAINS" },
             { text = "wowvendor", mode = "CONTAINS" },
             { text = "playerauctions", mode = "CONTAINS" },
-            { text = "g2g", mode = "EXACT" },
+            -- The G2G marketplace by its domain only: a bare "g2g" is "good to
+            -- go" in LFG ("lf tank gnomer then g2g"). Cleaning turns the dot
+            -- into a space, so this also catches "g2g . com" and "G2G com".
+            { text = "g2g com", mode = "PHRASE" },
             { text = "cheap gold", mode = "PHRASE" },
             { text = "cheapest gold", mode = "PHRASE" },
             { text = "buy gold", mode = "PHRASE" },
