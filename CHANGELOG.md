@@ -5,6 +5,14 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.2] - 2026-11-14
+
+### Fixed
+- **`rfk` blocked "Razorfen Kraul" groups on WoW Forever** (e.g. "LF2M dps/healer for RFK pst", "any healers for RFK?"). The bare `rfk` rule is removed. `rfk jr` and `rfkjr` still block the politician.
+- **`g2g` blocked "good to go" in group calls** (e.g. "lf tank gnomer then g2g"). The rule was there for the G2G gold marketplace, so it is now the phrase `g2g com`, which matches `g2g.com`, `g2g . com` and `G2G com` but not a bare "g2g".
+
+---
+
 ## [1.10.1] - 2026-11-06
 
 ### Added
