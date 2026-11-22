@@ -121,6 +121,9 @@ local C_ACCENT     = { 0.00, 0.70, 1.00, 1.00 } -- ElvUI Cyan
 local C_ACCENT_RED = { 1.00, 0.23, 0.19, 1.00 } -- C-SPAM Red
 local C_BTN_NORMAL = { 0.12, 0.12, 0.15, 0.85 }
 local C_BTN_HOVER  = { 0.18, 0.18, 0.22, 0.95 }
+local C_BTN_HOVER_RED = { 0.40, 0.10, 0.10, 0.90 }
+local C_BORDER_ARMED = { 0.00, 0.80, 0.20, 1.00 }
+local C_BORDER_DISARMED = { 0.80, 0.10, 0.10, 1.00 }
 
 -- Apply ElvUI 1-pixel flat backdrop with outer border & transparency support
 local function CreateElvBackdrop(frame, bgCol, borderCol, isTransparent)
@@ -188,15 +191,16 @@ local function CreateElvButton(parent, text, width, height, isRed)
 
     btn:SetScript("OnEnter", function(self)
         if not self:IsEnabled() then return end
-        local hoverCol = isRed and { 0.4, 0.1, 0.1, 0.9 } or C_BTN_HOVER
+        local hoverCol = isRed and C_BTN_HOVER_RED or C_BTN_HOVER
         local borderCol = isRed and C_ACCENT_RED or C_ACCENT
         self:SetBackdropColor(hoverCol[1], hoverCol[2], hoverCol[3], hoverCol[4])
         self:SetBackdropBorderColor(borderCol[1], borderCol[2], borderCol[3], borderCol[4])
     end)
 
     btn:SetScript("OnLeave", function(self)
+        local restBorder = self.restBorderCol or C_INNER_BORD
         self:SetBackdropColor(C_BTN_NORMAL[1], C_BTN_NORMAL[2], C_BTN_NORMAL[3], C_BTN_NORMAL[4])
-        self:SetBackdropBorderColor(C_INNER_BORD[1], C_INNER_BORD[2], C_INNER_BORD[3], C_INNER_BORD[4])
+        self:SetBackdropBorderColor(restBorder[1], restBorder[2], restBorder[3], restBorder[4])
     end)
 
     function btn:SetText(newText)
@@ -596,10 +600,15 @@ function UI:Init()
 
     local addBtn = CreateElvButton(p1, "+ Register Threat", 126, 24)
     addBtn:SetPoint("LEFT", modeBtn, "RIGHT", 6, 0)
-    addBtn:SetScript("OnClick", function()
+    local function SubmitCustomRule()
         if CSPAM:AddCustomRule(addInput:GetText(), selectedMode) then
             addInput:SetText("")
         end
+    end
+    addBtn:SetScript("OnClick", SubmitCustomRule)
+    addInput:SetScript("OnEnterPressed", function(self)
+        SubmitCustomRule()
+        self:ClearFocus()
     end)
 
     local searchBox = CreateElvEditBox(p1, 160, 24)
@@ -836,58 +845,66 @@ function UI:Init()
     detailScrollContent:SetSize(660, 400)
     detailScrollFrame:SetScrollChild(detailScrollContent)
     detailScrollContent.rows = {}
+    p2.detailScrollFrame = detailScrollFrame
     p2.detailScrollContent = detailScrollContent
 
-    local function RefreshDetailRows()
-        if not currentDetailPackKey or not CSPAM.Packs[currentDetailPackKey] then return end
-        local pack = CSPAM.Packs[currentDetailPackKey]
-        local words = pack.words or {}
+    -- Virtualized viewport for pack details: even a 1,000+ signature pack only
+    -- allocates the ~22 rows visible in the 438px scroll window instead of
+    -- creating 1,000+ permanent BackdropTemplate frames in a single frame stall.
+    local DETAIL_ROW_STEP = 23
+    local DETAIL_POOL_SIZE = 22
+    local filteredWords = {}
+    p2.filteredWords = filteredWords
 
-        for _, r in ipairs(detailScrollContent.rows) do
-            r:Hide()
-        end
+    local function EnsureDetailRow(slot)
+        local row = detailScrollContent.rows[slot]
+        if row then return row end
 
-        local y = 0
-        local rowIndex = 0
+        row = CreateFrame("Frame", nil, detailScrollContent, "BackdropTemplate")
+        row:SetSize(656, 22)
+        CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
 
-        for i, item in ipairs(words) do
-            local match = true
-            if packSearchFilter ~= "" then
-                local tMatch = item.text and item.text:lower():find(packSearchFilter, 1, true) ~= nil
-                local mMatch = item.mode and item.mode:lower():find(packSearchFilter, 1, true) ~= nil
-                match = tMatch or mMatch
-            end
+        row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.text:SetPoint("LEFT", 10, 0)
+        row.text:SetWidth(420)
+        row.text:SetJustifyH("LEFT")
+        row.text:SetWordWrap(false)
 
-            if match then
-                rowIndex = rowIndex + 1
-                local row = detailScrollContent.rows[rowIndex]
-                if not row then
-                    row = CreateFrame("Frame", nil, detailScrollContent, "BackdropTemplate")
-                    row:SetSize(656, 22)
-                    CreateElvBackdrop(row, C_ROW_ODD, C_ROW_BORDER, false)
+        row.mode = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        row.mode:SetPoint("LEFT", 440, 0)
 
-                    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-                    row.text:SetPoint("LEFT", 10, 0)
-                    row.text:SetWidth(420)
-                    row.text:SetJustifyH("LEFT")
-                    row.text:SetWordWrap(false)
+        row:SetScript("OnEnter", function(self)
+            self:SetBackdropColor(C_BTN_HOVER[1], C_BTN_HOVER[2], C_BTN_HOVER[3], C_BTN_HOVER[4])
+        end)
+        row:SetScript("OnLeave", function(self)
+            local bg = ((self.rowIndex or 1) % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
+            self:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
+        end)
+        row:EnableMouseWheel(true)
+        row:SetScript("OnMouseWheel", function(_, delta)
+            local fn = detailScrollFrame:GetScript("OnMouseWheel")
+            if fn then fn(detailScrollFrame, delta) end
+        end)
 
-                    row.mode = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                    row.mode:SetPoint("LEFT", 440, 0)
+        detailScrollContent.rows[slot] = row
+        return row
+    end
 
-                    row:SetScript("OnEnter", function(self)
-                        self:SetBackdropColor(C_BTN_HOVER[1], C_BTN_HOVER[2], C_BTN_HOVER[3], C_BTN_HOVER[4])
-                    end)
-                    row:SetScript("OnLeave", function(self)
-                        local bg = (self.rowIndex % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
-                        self:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
-                    end)
+    local function RenderDetailViewport(scrollOffset)
+        local total = #filteredWords
+        local offset = scrollOffset or detailScrollFrame:GetVerticalScroll() or 0
+        if offset < 0 then offset = 0 end
+        local firstIdx = math.floor(offset / DETAIL_ROW_STEP) + 1
+        local maxFirst = math.max(1, total - DETAIL_POOL_SIZE + 1)
+        if firstIdx > maxFirst then firstIdx = maxFirst end
 
-                    detailScrollContent.rows[rowIndex] = row
-                end
-
-                row.rowIndex = rowIndex
-                local bg = (rowIndex % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
+        for slot = 1, DETAIL_POOL_SIZE do
+            local idx = firstIdx + slot - 1
+            local item = filteredWords[idx]
+            if item then
+                local row = EnsureDetailRow(slot)
+                row.rowIndex = idx
+                local bg = (idx % 2 == 1) and C_ROW_ODD or C_ROW_EVEN
                 row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
                 row.text:SetText(item.text or "")
@@ -904,18 +921,49 @@ function UI:Init()
                 row.mode:SetText(modeCol .. mode .. "|r")
 
                 row:ClearAllPoints()
-                row:SetPoint("TOPLEFT", 0, -y)
+                row:SetPoint("TOPLEFT", 0, -((idx - 1) * DETAIL_ROW_STEP))
                 row:Show()
-                y = y + 23
+            elseif detailScrollContent.rows[slot] then
+                detailScrollContent.rows[slot]:Hide()
+            end
+        end
+    end
+    p2.RenderDetailViewport = RenderDetailViewport
+
+    detailScrollFrame:HookScript("OnVerticalScroll", function(_, offset)
+        if detailView:IsShown() then
+            RenderDetailViewport(offset)
+        end
+    end)
+
+    local function RefreshDetailRows()
+        if not currentDetailPackKey or not CSPAM.Packs[currentDetailPackKey] then return end
+        local pack = CSPAM.Packs[currentDetailPackKey]
+        local words = pack.words or {}
+
+        table.wipe(filteredWords)
+        local count = 0
+        for _, item in ipairs(words) do
+            local match = true
+            if packSearchFilter ~= "" then
+                local tMatch = item.text and item.text:lower():find(packSearchFilter, 1, true) ~= nil
+                local mMatch = item.mode and item.mode:lower():find(packSearchFilter, 1, true) ~= nil
+                match = tMatch or mMatch
+            end
+            if match then
+                count = count + 1
+                filteredWords[count] = item
             end
         end
 
-        detailScrollContent:SetHeight(math.max(y, 380))
+        detailScrollContent:SetHeight(math.max(count * DETAIL_ROW_STEP, 380))
         if packSearchFilter == "" then
             detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d Signatures)|r", (pack.name or currentDetailPackKey):upper(), #words))
         else
-            detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d of %d Signatures)|r", (pack.name or currentDetailPackKey):upper(), rowIndex, #words))
+            detailTitle:SetText(string.format("|cff00e5ff%s|r  |cffffd100(%d of %d Signatures)|r", (pack.name or currentDetailPackKey):upper(), count, #words))
         end
+
+        RenderDetailViewport(detailScrollFrame:GetVerticalScroll() or 0)
     end
     p2.RefreshDetailRows = RefreshDetailRows
 
@@ -923,6 +971,7 @@ function UI:Init()
         local val = self:GetText():lower():trim()
         if val == "" then dsPlaceholder:Show() else dsPlaceholder:Hide() end
         packSearchFilter = val
+        detailScrollFrame:SetVerticalScroll(0)
         RefreshDetailRows()
     end)
 
@@ -1138,6 +1187,17 @@ function UI:Init()
     local ieScroll = CreateFrame("ScrollFrame", "CSPAMIEScrollFrame", p5, "UIPanelScrollFrameTemplate")
     ieScroll:SetPoint("TOPLEFT", 10, -46)
     ieScroll:SetPoint("BOTTOMRIGHT", -26, 44)
+    ieScroll:EnableMouseWheel(true)
+    ieScroll:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local maxScroll = self:GetVerticalScrollRange()
+        local step = 30
+        if delta > 0 then
+            self:SetVerticalScroll(math.max(0, cur - step))
+        else
+            self:SetVerticalScroll(math.min(maxScroll, cur + step))
+        end
+    end)
 
     local ieEditBox = CreateFrame("EditBox", nil, ieScroll, "BackdropTemplate")
     ieEditBox:SetMultiLine(true)
@@ -1147,6 +1207,9 @@ function UI:Init()
     ieEditBox:SetFontObject("GameFontHighlightSmall")
     ieEditBox:SetWidth(650)
     ieEditBox:SetTextInsets(6, 6, 6, 6)
+    ieEditBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
     CreateElvBackdrop(ieEditBox, { 0.05, 0.05, 0.07, 0.75 }, C_INNER_BORD, false)
     ieScroll:SetScrollChild(ieEditBox)
     p5.ieEditBox = ieEditBox
@@ -1258,10 +1321,12 @@ function UI:Refresh()
     local armed = (CSPAM.db and CSPAM.db.enabled == true)
     if armed then
         mainFrame.masterBtn:SetText("|cff00ff00ARMED|r")
-        mainFrame.masterBtn:SetBackdropBorderColor(0, 0.8, 0.2, 1)
+        mainFrame.masterBtn.restBorderCol = C_BORDER_ARMED
+        mainFrame.masterBtn:SetBackdropBorderColor(C_BORDER_ARMED[1], C_BORDER_ARMED[2], C_BORDER_ARMED[3], C_BORDER_ARMED[4])
     else
         mainFrame.masterBtn:SetText("|cffff2020DISARMED|r")
-        mainFrame.masterBtn:SetBackdropBorderColor(0.8, 0.1, 0.1, 1)
+        mainFrame.masterBtn.restBorderCol = C_BORDER_DISARMED
+        mainFrame.masterBtn:SetBackdropBorderColor(C_BORDER_DISARMED[1], C_BORDER_DISARMED[2], C_BORDER_DISARMED[3], C_BORDER_DISARMED[4])
     end
 
     UpdateStatsReadout()
@@ -1321,6 +1386,7 @@ function UI:Refresh()
                     local bg = (rowIndex % 2 == 0) and C_BG_ROW_ALT or C_ROW_ODD
                     row:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
 
+                    row:ClearAllPoints()
                     row:SetPoint("TOPLEFT", 0, -y)
                     row.text:SetText(item.text)
                     row.mode:SetText("|cffffd100[" .. (item.mode or "EXACT") .. "]|r")

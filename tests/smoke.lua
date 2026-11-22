@@ -458,7 +458,14 @@ check("18+ RP-Friendly guild ad, 'war crimes' lore joke, and 'unsub' pass",
 -- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
 -- decoded twin; without it, leet anywhere in the message hid them
 check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)
-check("leet 'v@nce' fires via the decoded twin of 'vance'", eval("v@nce 2028").shouldFilter == true)
+check("leet 'v@nce' fires via the decoded twin of 'vance' and logs 'vance' (not 'uance')",
+    eval("v@nce 2028").matchedWord == "vance")
+check("leet CONTAINS with 'v' fires ('w0wvendor', 'v0yeur', 'xv1deos')",
+    eval("cheap runs at w0wvendor").matchedWord == "wowvendor"
+    and eval("weird v0yeur stuff").matchedWord == "voyeur"
+    and eval("check out xv1deos").matchedWord == "xvideos")
+check("leet-spelled CONTAINS 'd1sc' still leaves 'disc priest' alone",
+    eval("LF disc priest for raid").shouldFilter == false)
 check("leet 's@ved heroic' fires", eval("s@ved heroic runs tonight").shouldFilter == true)
 check("'die' passes (the leet-spelled rule 'd1e' gets no twin)",
     eval("dont die to the first mechanic").shouldFilter == false)
@@ -512,8 +519,27 @@ check("MASK keeps exact spacing around links",
         == "**** |cff0070dd|Hitem:19019::::::::80:::::|h[Thunderfury]|h|r pst")
 check("MASK still censors CONTAINS matches inside words",
     eval("clicky links here").maskedText == "clicky ****s here")
+check("MASK censors punctuated PHRASE ('pro-life') even when typed with a space",
+    eval("he is pro life today").maskedText == "he is ******** today")
 CSPAM.db.action = "HIDE"
 E:InvalidateCache()
+
+-- Events.lua: empty channelString on SAY/WHISPER must fall back to event name, not ""
+do
+    local registered = {}
+    ChatFrameUtil = {
+        AddMessageEventFilter = function(evt, fn) registered[evt] = fn end
+    }
+    loadaddon("Core/Events.lua")
+    CSPAM.Events:RegisterFilters()
+    CSPAM.db.channelGroups = { public = true, communities = true, say = true, emote = true, whisper = true }
+    CSPAM.db.filteredLog = {}
+    local sayFilter = registered["CHAT_MSG_SAY"]
+    assert(sayFilter, "CHAT_MSG_SAY filter registered")
+    local blocked = sayFilter(nil, "CHAT_MSG_SAY", "vote trump now", "Spammer", "Common", "", "", "", 0, 0, "", 0, 7777, nil)
+    check("CHAT_MSG_SAY with empty channelString logs sector 'SAY' (not '')",
+        blocked == true and CSPAM.db.filteredLog[1] and CSPAM.db.filteredLog[1].channel == "SAY")
+end
 
 -- Single-token rules from every pack share one index, so a term listed in two
 -- packs silently overwrites the first and pairs() order decides which pack

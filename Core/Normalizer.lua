@@ -3,6 +3,13 @@ local addonName, CSPAM = ...
 CSPAM.Normalizer = {}
 local N = CSPAM.Normalizer
 
+local sbyte = string.byte
+local schar = string.char
+local sfind = string.find
+local sgsub = string.gsub
+local smatch = string.match
+local tconcat = table.concat
+
 -- Leetspeak & Symbol translation table (single-byte replacements applied per byte)
 local LEET_MAP = {
     ["@"] = "a",
@@ -24,6 +31,12 @@ local LEET_MAP = {
     ["2"] = "z",
 }
 N.LEET_MAP = LEET_MAP -- shared with Engine:MaskMessage's fuzzy character classes
+
+-- Any byte that ApplyLeetTranslation can actually rewrite: all LEET_MAP keys,
+-- the leading bytes of HOMOGLYPH_MAP (\208/\209), and EURO_SIGN (\226).
+-- Messages containing none of these produce a leetClean identical to cleaned,
+-- so NormalizeMessage can skip the entire second pass.
+local HAS_LEET_CHARS = "[@48%(369!1|0%$57%+v2\208\209\226]"
 
 -- Common Cyrillic / Multibyte Homoglyphs mapped to ASCII Latin.
 -- Every key is a 2-byte UTF-8 sequence starting with \208 or \209, which lets
@@ -135,9 +148,15 @@ end
 
 -- Apply Leetspeak & Homoglyph translation
 function N.ApplyLeetTranslation(text)
-    if not text then return "" end
-    return (text:gsub("[^%s/%-]+", TranslateChunk))
+    if not text or text == "" then return "" end
+    if not sfind(text, HAS_LEET_CHARS) then return text end
+    return (sgsub(text, "[^%s/%-]+", TranslateChunk))
 end
+
+-- Reusable scratch buffers for CollapseRepeats / AddJoinedRuns so the chat
+-- hot path allocates no temporary array tables per message.
+local collapseOne, collapseTwo = {}, {}
+local joinBuf = {}
 
 -- Collapse runs of 3+ identical letters. A gsub with "(%a)%1%1+" cannot do
 -- this: Lua pattern quantifiers do not apply to back-references, so the '+'
@@ -148,17 +167,16 @@ end
 function N.CollapseRepeats(text)
     -- Fast path: no letter appears 3+ times in a row (back-references
     -- without quantifiers are valid pattern items)
-    if not text:find("(%a)%1%1") then
+    if not sfind(text, "(%a)%1%1") then
         return text, text
     end
 
-    local one, two = {}, {}
     local n1, n2 = 0, 0
     local i, len = 1, #text
     while i <= len do
-        local b = text:byte(i)
+        local b = sbyte(text, i)
         local j = i + 1
-        while j <= len and text:byte(j) == b do
+        while j <= len and sbyte(text, j) == b do
             j = j + 1
         end
         local runLen = j - i
@@ -167,15 +185,15 @@ function N.CollapseRepeats(text)
         local keep2 = (isLetter and runLen >= 3) and 2 or runLen
         for _ = 1, keep1 do
             n1 = n1 + 1
-            one[n1] = b
+            collapseOne[n1] = b
         end
         for _ = 1, keep2 do
             n2 = n2 + 1
-            two[n2] = b
+            collapseTwo[n2] = b
         end
         i = j
     end
-    return string.char(unpack(one, 1, n1)), string.char(unpack(two, 1, n2))
+    return schar(unpack(collapseOne, 1, n1)), schar(unpack(collapseTwo, 1, n2))
 end
 
 -- Add every whitespace-separated word of `text` to the token set
@@ -188,10 +206,14 @@ end
 -- Join runs of 3+ consecutive single-character tokens into whole words so
 -- spaced-out evasion ("t r u m p", "t.r.u.m.p" after cleaning) is tokenized too
 local function AddJoinedRuns(text, set)
-    local buf, n = {}, 0
+    -- Fast path: skip the gmatch scan when there aren't 3+ single-char tokens
+    if not sfind(text, "^%S %S %S") and not sfind(text, " %S %S %S") then
+        return
+    end
+    local n = 0
     local function flush()
         if n >= 3 then
-            local joined = table.concat(buf, "", 1, n)
+            local joined = tconcat(joinBuf, "", 1, n)
             set[joined] = true
             local one, two = N.CollapseRepeats(joined)
             set[one] = true
@@ -202,7 +224,7 @@ local function AddJoinedRuns(text, set)
     for word in text:gmatch("%S+") do
         if #word == 1 then
             n = n + 1
-            buf[n] = word
+            joinBuf[n] = word
         else
             flush()
         end
@@ -221,17 +243,22 @@ function N.NormalizeMessage(rawMessage, options)
     -- VISIBLE text in the matching corpus. Link data (ids, colors, payload)
     -- stays excluded, so item ids and hex codes can never trip rules, and
     -- the placeholder sentinel itself never reaches the matcher.
-    local matchSource = extracted:gsub("___CSPAMLINK(%d+)___", function(id)
-        local link = links[tonumber(id)]
-        local display = link and link:match("|h(.-)|h")
-        if not display then return " " end
-        local text = display:gsub("[%[%]]", " ")
-        return " " .. text .. " "
-    end)
+    local matchSource
+    if #links > 0 then
+        matchSource = sgsub(extracted, "___CSPAMLINK(%d+)___", function(id)
+            local link = links[tonumber(id)]
+            local display = link and smatch(link, "|h(.-)|h")
+            if not display then return " " end
+            local text = sgsub(display, "[%[%]]", " ")
+            return " " .. text .. " "
+        end)
+    else
+        matchSource = extracted
+    end
     -- Escapes left in the corpus: icons inside link display text, and loose
     -- color codes (another addon's filter highlighting a keyword) that would
     -- otherwise glue "cffff0000" onto the front of the word they color
-    if matchSource:find("|", 1, true) then
+    if sfind(matchSource, "|", 1, true) then
         matchSource = matchSource:gsub("|T.-|t", " "):gsub("|A.-|a", " ")
             :gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:|]*:", ""):gsub("|r", "")
     end
@@ -244,25 +271,33 @@ function N.NormalizeMessage(rawMessage, options)
     local tokens = {}
     AddTokens(cleaned, tokens)
 
-    -- Leet / Homoglyph normalized variant
+    -- Leet / Homoglyph normalized variant. Skipped entirely when `lower`
+    -- contains no translatable bytes (so leetClean would equal cleaned).
     local leetClean = nil
     local leetTokens = nil
 
-    if options.checkLeet ~= false then
-        leetClean = N.ApplyLeetTranslation(lower):gsub("[%p%c]", " "):gsub("%s+", " "):trim()
-        leetTokens = {}
-        AddTokens(leetClean, leetTokens)
+    if options.checkLeet ~= false and sfind(lower, HAS_LEET_CHARS) then
+        local translated = N.ApplyLeetTranslation(lower)
+        if translated ~= lower then
+            leetClean = translated:gsub("[%p%c]", " "):gsub("%s+", " "):trim()
+            if leetClean ~= cleaned then
+                leetTokens = {}
+                AddTokens(leetClean, leetTokens)
+            else
+                leetClean = nil
+            end
+        end
     end
 
     if options.collapseRepeats ~= false then
         local one, two = N.CollapseRepeats(cleaned)
-        AddTokens(one, tokens)
-        AddTokens(two, tokens)
+        if one ~= cleaned then AddTokens(one, tokens) end
+        if two ~= cleaned and two ~= one then AddTokens(two, tokens) end
         AddJoinedRuns(cleaned, tokens)
         if leetClean then
             local leetOne, leetTwo = N.CollapseRepeats(leetClean)
-            AddTokens(leetOne, leetTokens)
-            AddTokens(leetTwo, leetTokens)
+            if leetOne ~= leetClean then AddTokens(leetOne, leetTokens) end
+            if leetTwo ~= leetClean and leetTwo ~= leetOne then AddTokens(leetTwo, leetTokens) end
             AddJoinedRuns(leetClean, leetTokens)
         end
     end

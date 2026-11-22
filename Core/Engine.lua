@@ -3,6 +3,14 @@ local addonName, CSPAM = ...
 CSPAM.Engine = {}
 local E = CSPAM.Engine
 
+local sbyte = string.byte
+local sfind = string.find
+local pairs = pairs
+local ipairs = ipairs
+
+-- Shared immutable pass-through result so clean chat allocates zero tables
+local PASS_RESULT = { shouldFilter = false }
+
 -- Escape Lua pattern magic characters so text can be matched literally
 local function EscapePattern(str)
     return (str:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
@@ -16,8 +24,28 @@ end
 -- Compiled Index Tables
 local exactWords = {}
 local leetExactWords = {} -- leet-decoded keys, checked against leet tokens only
-local containsList = {}
+-- CONTAINS rules are bucketed by their first 2 bytes (integer key b1*256+b2)
+-- so a clean message scans only buckets for byte-pairs it actually contains,
+-- with zero string allocations. 1-byte custom rules go into containsShort.
+local containsByPair = {}
+local containsLeetByPair = {}
+local containsShort = {}
+local containsCount = 0
 local regexList = {}
+
+local function IndexContains(tableMap, needle, rule)
+    if #needle < 2 then
+        containsShort[#containsShort + 1] = { rule = rule, needle = needle }
+        return
+    end
+    local key = sbyte(needle, 1) * 256 + sbyte(needle, 2)
+    local bucket = tableMap[key]
+    if not bucket then
+        bucket = {}
+        tableMap[key] = bucket
+    end
+    bucket[#bucket + 1] = { rule = rule, needle = needle }
+end
 
 -- Phrase rules are bucketed by first word. A phrase pattern opens with
 -- %f[%w], so its first word can only match as a whole maximal %w run of the
@@ -98,7 +126,10 @@ end
 function E:RebuildIndex()
     table.wipe(exactWords)
     table.wipe(leetExactWords)
-    table.wipe(containsList)
+    table.wipe(containsByPair)
+    table.wipe(containsLeetByPair)
+    table.wipe(containsShort)
+    containsCount = 0
     table.wipe(phraseByFirst)
     table.wipe(phraseUnindexed)
     phraseCount = 0
@@ -162,13 +193,26 @@ function E:RebuildIndex()
         elseif modeUpper == "CONTAINS" then
             local lowered = text:lower():trim()
             if lowered ~= "" then
-                -- Matched with plain (non-pattern) find; no escaping needed
-                table.insert(containsList, {
+                local rule = {
                     raw = text,
                     text = lowered,
                     category = category,
                     pack = packName,
-                })
+                }
+                IndexContains(containsByPair, lowered, rule)
+                -- leetClean strips punctuation to spaces, so punctuated
+                -- CONTAINS rules can never match it. Pure-letter rules also
+                -- get a leet-decoded twin (e.g. "wowvendor" -> "wowuendor",
+                -- "voyeur" -> "uoyeur") while leet-spelled rules like "d1sc"
+                -- stay literal so they cannot decode to ordinary words.
+                if not sfind(lowered, "[%p%c]") then
+                    IndexContains(containsLeetByPair, lowered, rule)
+                    local leetNeedle = leet and lowered:find("^%a+$") and leet(lowered)
+                    if leetNeedle and leetNeedle ~= lowered then
+                        IndexContains(containsLeetByPair, leetNeedle, rule)
+                    end
+                end
+                containsCount = containsCount + 1
             end
         elseif modeUpper == "REGEX" or modeUpper == "PATTERN" then
             table.insert(regexList, {
@@ -211,6 +255,7 @@ end
 local friendSet = {}
 local guildSet = {}
 local groupSet = {}
+local playerNameLower = nil
 
 local function ShortName(name)
     return (name:match("^([^-]+)") or name):lower()
@@ -227,11 +272,21 @@ function E:RebuildFriendSet()
         end
     end
     if BNGetNumFriends and C_BattleNet and C_BattleNet.GetFriendAccountInfo then
+        local getNumGameAccounts = C_BattleNet.GetFriendNumGameAccounts
+        local getGameAccountInfo = C_BattleNet.GetFriendGameAccountInfo
         for i = 1, (BNGetNumFriends() or 0) do
             local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
             local gameInfo = accountInfo and accountInfo.gameAccountInfo
-            if gameInfo and gameInfo.characterName then
-                friendSet[gameInfo.characterName:lower()] = true
+            if gameInfo and gameInfo.characterName and gameInfo.characterName ~= "" then
+                friendSet[ShortName(gameInfo.characterName)] = true
+            end
+            if getNumGameAccounts and getGameAccountInfo then
+                for j = 1, (getNumGameAccounts(i) or 0) do
+                    local ga = getGameAccountInfo(i, j)
+                    if ga and ga.characterName and ga.characterName ~= "" then
+                        friendSet[ShortName(ga.characterName)] = true
+                    end
+                end
             end
         end
     end
@@ -273,6 +328,8 @@ rosterFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
 rosterFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 rosterFrame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_ENTERING_WORLD" then
+        local pname = UnitName("player")
+        playerNameLower = pname and pname:lower() or nil
         E:RebuildFriendSet()
         E:RebuildGuildSet()
         E:RebuildGroupSet()
@@ -299,9 +356,14 @@ function E:IsSenderWhitelisted(senderName, senderGUID)
 
     local key = ShortName(senderName)
 
-    -- Self is always friendly
-    local playerName = UnitName("player")
-    if playerName and key == playerName:lower() then
+    -- Self is always friendly (cached once at PLAYER_ENTERING_WORLD)
+    if not playerNameLower then
+        local playerName = UnitName("player")
+        if playerName then
+            playerNameLower = playerName:lower()
+        end
+    end
+    if playerNameLower and key == playerNameLower then
         return true
     end
 
@@ -379,14 +441,23 @@ function E:MaskMessage(rawMessage, matchedText, norm, bounded)
 
     local extracted, links = norm.extracted, norm.links
 
-    -- Multi-word matches (PHRASE rules) tolerate any whitespace between words
+    -- Multi-word matches (PHRASE rules) tolerate any whitespace or punctuation
+    -- between words, so a rule like "pro-life" masks both "pro-life" and "pro life"
     local words = {}
-    for w in matchedText:gmatch("%S+") do
-        words[#words + 1] = FuzzyWordPattern(w)
+    if bounded then
+        for w in matchedText:gmatch("[^%s%p]+") do
+            words[#words + 1] = FuzzyWordPattern(w)
+        end
+    end
+    if #words == 0 then
+        for w in matchedText:gmatch("%S+") do
+            words[#words + 1] = FuzzyWordPattern(w)
+        end
     end
     if #words == 0 then return rawMessage end
 
-    local pattern = table.concat(words, "%s+")
+    local sep = bounded and "[%s%p]+" or "%s+"
+    local pattern = table.concat(words, sep)
     if bounded then
         local class = GetWordClass()
         pattern = "%f[" .. class .. "]" .. pattern .. "%f[^" .. class .. "]"
@@ -485,6 +556,39 @@ local function FindPhrase(norm)
         or (leetClean and FindPhraseInRuns(leetClean, cleaned, leetClean))
 end
 
+local function FindContainsInText(text, pairMap)
+    local len = #text
+    if len < 2 then return nil end
+    local prev = sbyte(text, 1)
+    for i = 2, len do
+        local cur = sbyte(text, i)
+        local bucket = pairMap[prev * 256 + cur]
+        if bucket then
+            local startPos = i - 1
+            for j = 1, #bucket do
+                local item = bucket[j]
+                if sfind(text, item.needle, startPos, true) == startPos then
+                    return item.rule
+                end
+            end
+        end
+        prev = cur
+    end
+    return nil
+end
+
+local function FindContains(norm)
+    local lower, leetClean = norm.lower, norm.leetClean
+    for i = 1, #containsShort do
+        local item = containsShort[i]
+        if sfind(lower, item.needle, 1, true) or (leetClean and sfind(leetClean, item.needle, 1, true)) then
+            return item.rule
+        end
+    end
+    return FindContainsInText(lower, containsByPair)
+        or (leetClean and FindContainsInText(leetClean, containsLeetByPair))
+end
+
 -- Full (uncached) rule evaluation; caches its verdict
 local function EvaluateFresh(self, rawMessage, senderName, channelName)
     local db = CSPAM.db
@@ -494,11 +598,11 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
 
     -- 1. O(1) Fast-Path Token Set Matching
     if norm.tokens then
-        for token, _ in pairs(norm.tokens) do
+        for token in pairs(norm.tokens) do
             local rule = exactWords[token]
             if rule then
                 matchedRule = rule
-                matchedWord = token
+                matchedWord = rule.text
                 break
             end
         end
@@ -506,11 +610,11 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
 
     -- Check leet decoded tokens
     if not matchedRule and norm.leetTokens then
-        for token, _ in pairs(norm.leetTokens) do
+        for token in pairs(norm.leetTokens) do
             local rule = exactWords[token] or leetExactWords[token]
             if rule then
                 matchedRule = rule
-                matchedWord = token
+                matchedWord = rule.text
                 break
             end
         end
@@ -525,21 +629,19 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
         end
     end
 
-    -- 3. Contains / Substring Scanning (plain find: no pattern compilation)
-    if not matchedRule and #containsList > 0 then
-        for _, rule in ipairs(containsList) do
-            if norm.lower:find(rule.text, 1, true) or (norm.leetClean and norm.leetClean:find(rule.text, 1, true)) then
-                matchedRule = rule
-                matchedWord = rule.raw
-                break
-            end
+    -- 3. Contains / Substring Scanning (byte-pair indexed plain find)
+    if not matchedRule and containsCount > 0 then
+        local rule = FindContains(norm)
+        if rule then
+            matchedRule = rule
+            matchedWord = rule.raw
         end
     end
 
     -- 4. Advanced Regex Patterns (pcall protected)
     if not matchedRule and #regexList > 0 then
         for _, rule in ipairs(regexList) do
-            local ok, matchStart = pcall(string.find, norm.lower, rule.pattern)
+            local ok, matchStart = pcall(sfind, norm.lower, rule.pattern)
             if ok and matchStart then
                 matchedRule = rule
                 matchedWord = rule.raw
@@ -567,7 +669,7 @@ local function EvaluateFresh(self, rawMessage, senderName, channelName)
         }
         self:LogIntercept(result, rawMessage, senderName, channelName)
     else
-        result = { shouldFilter = false }
+        result = PASS_RESULT
     end
 
     CacheDecision(rawMessage, matchedRule ~= nil, result)
@@ -584,7 +686,7 @@ local lastLineResult = nil
 function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName, lineID)
     local db = CSPAM.db
     if not db or not db.enabled then
-        return { shouldFilter = false }
+        return PASS_RESULT
     end
 
     if lineID and lineID ~= 0 and lineID == lastLineID then
@@ -595,7 +697,7 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName, line
 
     -- IFF Friendly check
     if self:IsSenderWhitelisted(senderName, senderGUID) then
-        result = { shouldFilter = false }
+        result = PASS_RESULT
     else
         db.stats.totalScanned = (db.stats.totalScanned or 0) + 1
 
@@ -607,7 +709,7 @@ function E:EvaluateMessage(rawMessage, senderName, senderGUID, channelName, line
                 self:LogIntercept(cached.result, rawMessage, senderName, channelName)
                 result = cached.result
             else
-                result = { shouldFilter = false }
+                result = PASS_RESULT
             end
         else
             result = EvaluateFresh(self, rawMessage, senderName, channelName)

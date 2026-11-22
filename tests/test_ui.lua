@@ -66,9 +66,19 @@ local function mockFrame(frameType, name, parent, template)
         return tex
     end
     function f:SetScrollChild(c) self._scrollChild = c end
-    function f:SetVerticalScroll(v) self._vScroll = v end
+    function f:SetVerticalScroll(v)
+        self._vScroll = v
+        if self._scripts["OnVerticalScroll"] then
+            self._scripts["OnVerticalScroll"](self, v)
+        end
+    end
     function f:GetVerticalScroll() return self._vScroll or 0 end
-    function f:GetVerticalScrollRange() return 100 end
+    function f:GetVerticalScrollRange()
+        if self._scrollChild and self._scrollChild._h then
+            return math.max(0, self._scrollChild._h - 438)
+        end
+        return 100
+    end
     function f:EnableMouse(b) end
     function f:EnableMouseWheel(b) end
     function f:RegisterForDrag(...) end
@@ -184,7 +194,7 @@ for _, packKey in ipairs(allPackKeys) do
         print(string.format("FAIL: ShowDetail('%s') crashed: %s", packKey, tostring(err)))
         os.exit(1)
     end
-    
+
     local rows = p2.detailScrollContent.rows
     local shownCount = 0
     for _, r in ipairs(rows) do
@@ -192,22 +202,35 @@ for _, packKey in ipairs(allPackKeys) do
             shownCount = shownCount + 1
         end
     end
-    print(string.format("  -> Shown rows: %d / Expected: %d", shownCount, #pack.words))
-    assert(shownCount == #pack.words, string.format("Expected %d shown rows but got %d!", #pack.words, shownCount))
+    local expectedVisible = math.min(#pack.words, 22)
+    print(string.format("  -> Filtered: %d / Visible pool: %d (max 22 frames)", #p2.filteredWords, shownCount))
+    assert(#p2.filteredWords == #pack.words, string.format("Expected %d filteredWords but got %d!", #pack.words, #p2.filteredWords))
+    assert(shownCount == expectedVisible, string.format("Expected %d visible rows but got %d!", expectedVisible, shownCount))
+    assert(#rows <= 22, string.format("Virtualized pool should never exceed 22 frames, got %d!", #rows))
 end
+
+print("Testing virtualized detail scroll to bottom...")
+p2.ShowDetail("politics")
+local maxScroll = p2.detailScrollFrame:GetVerticalScrollRange()
+assert(maxScroll > 10000, "Politics detail scroll range should span all signatures, got " .. tostring(maxScroll))
+p2.detailScrollFrame:SetVerticalScroll(maxScroll)
+local lastRow = p2.detailScrollContent.rows[22]
+local lastPackWord = CSPAM.Packs.politics.words[#CSPAM.Packs.politics.words].text
+assert(lastRow and lastRow:IsShown() and lastRow.text:GetText() == lastPackWord,
+    "Scrolling to bottom should render the last signature '" .. lastPackWord .. "', got '" .. tostring(lastRow and lastRow.text:GetText()) .. "'")
 
 print("Testing search filter in detail view...")
 p2.ShowDetail("politics")
 p2.searchBox:SetText("trump")
 p2.searchBox:GetScript("OnTextChanged")(p2.searchBox)
-local trumpRows = 0
-for _, r in ipairs(p2.detailScrollContent.rows) do
-    if r:IsShown() then
-        trumpRows = trumpRows + 1
-    end
-end
+local trumpRows = #p2.filteredWords
 print(string.format("  -> Filtered 'trump' rows: %d", trumpRows))
 assert(trumpRows > 0, "Search for 'trump' should have returned matches!")
+local shownAfterSearch = 0
+for _, r in ipairs(p2.detailScrollContent.rows) do
+    if r:IsShown() then shownAfterSearch = shownAfterSearch + 1 end
+end
+assert(shownAfterSearch == math.min(trumpRows, 22), "Visible rows after search should match filtered count")
 
 print("Testing HideDetail()...")
 p2.HideDetail()

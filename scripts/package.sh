@@ -73,7 +73,7 @@ cat > dist/release.json <<EOF
 EOF
 
 echo "Built dist/${ARCHIVE_NAME} and dist/release.json:"
-unzip -l "dist/${ARCHIVE_NAME}" | head -20
+unzip -l "dist/${ARCHIVE_NAME}" | sed -n '1,20p'
 echo ""
 echo "Contents of dist/release.json:"
 cat dist/release.json

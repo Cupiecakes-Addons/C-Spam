@@ -74,7 +74,11 @@ local function FilterChatMessage(chatFrame, event, message, sender, language, ch
 
     local displaySector = channelName
     if not displaySector or displaySector == "" then
-        displaySector = channelString or event:gsub("^CHAT_MSG_", "")
+        if channelString and channelString ~= "" then
+            displaySector = channelString
+        else
+            displaySector = event:gsub("^CHAT_MSG_", "")
+        end
     end
 
     local eval = CSPAM.Engine:EvaluateMessage(message, sender, guid, displaySector, counter)
