@@ -380,6 +380,81 @@ check("'basements' passes",
 check("'Four Horsemen' passes ('semen' is EXACT)",
     eval("pulling the Four Horsemen in Naxx").shouldFilter == false)
 
+-- Full block-list audit (v1.10.3): missed political shorthand ("dems"),
+-- missing plurals/inflections, slurs, Classic/Forever boosts, and WoW safety
+check("screenshot miss: 'dems already destroyed the stocks' fires in politics",
+    eval("dems already destroyed the stocks, look for something else").category == CSPAM.Packs.politics.name)
+check("'repubs' fires", eval("repubs and dems arguing again").shouldFilter == true)
+check("'libs' fires", eval("owning the libs in trade").shouldFilter == true)
+check("'neocons' fires", eval("neocons ruined everything").shouldFilter == true)
+check("'bernies' fires (Nov 8 chat log)", eval("Bernies only").shouldFilter == true)
+check("'musk' alone fires", eval("Musk broke the site").shouldFilter == true)
+check("'doge' fires", eval("doge cut the budget").shouldFilter == true)
+check("'zelenskyy' double-y fires", eval("zelenskyy spoke today").shouldFilter == true)
+check("'hitler' fires", eval("comparing him to hitler").shouldFilter == true)
+check("'holocaust' / 'genocide' fire",
+    eval("holocaust denial").shouldFilter == true and eval("calling it genocide").shouldFilter == true)
+check("'racist' / 'bigotry' fire",
+    eval("stop being racist").shouldFilter == true and eval("pure bigotry").shouldFilter == true)
+check("'ukraine' / 'nato' fire",
+    eval("funding ukraine through nato").shouldFilter == true)
+check("'lgbtqia2s+' fires in sexuality",
+    eval("LGBTQIA2S+ friendly guild").category == CSPAM.Packs.sexuality.name)
+check("'homophobia' / 'terf' / 'cis' fire in sexuality",
+    eval("stop the homophobia").category == CSPAM.Packs.sexuality.name
+    and eval("called her a terf").category == CSPAM.Packs.sexuality.name
+    and eval("cis people in trade").category == CSPAM.Packs.sexuality.name)
+check("Forever 1-60 / SM boost / wowdrop / KSL fire in boosting",
+    eval("WTS 1-60 leveling fast").category == CSPAM.Packs.boosting.name
+    and eval("WTS SM boost 5g per run").category == CSPAM.Packs.boosting.name
+    and eval("visit wowdrop for services").category == CSPAM.Packs.boosting.name
+    and eval("WTS KSL 3000 rio").category == CSPAM.Packs.boosting.name
+    and eval("ban rmt buyers").category == CSPAM.Packs.boosting.name)
+check("plural slurs & toxicity gaps fire",
+    eval("bunch of niggers").shouldFilter == true
+    and eval("shut up faggots").shouldFilter == true
+    and eval("bunch of retards").shouldFilter == true
+    and eval("stop being cunts").shouldFilter == true
+    and eval("weaponized autism").shouldFilter == true
+    and eval("called him a pedophile").shouldFilter == true
+    and eval("rape joke in trade").shouldFilter == true
+    and eval("sybau bro").shouldFilter == true
+    and eval("surrounded by degens").shouldFilter == true)
+check("NSFW misspellings & spaced forms fire",
+    eval("cuz fuk healin the tank").shouldFilter == true
+    and eval("fuq that guy").shouldFilter == true
+    and eval("stop being pussies").shouldFilter == true
+    and eval("asking for a blow job").shouldFilter == true
+    and eval("rule34 art").shouldFilter == true)
+check("ERP gaps fire in ERP pack",
+    eval("lf girlfriend pst").category == CSPAM.Packs.erp.name
+    and eval("any eboys online").category == CSPAM.Packs.erp.name
+    and eval("into petplay").category == CSPAM.Packs.erp.name
+    and eval("puppygirl looking for owner").category == CSPAM.Packs.erp.name)
+
+-- WoW & English false-positive safety guards for v1.10.3
+check("'SM lib' passes (no bare 'lib')", eval("LF tank for SM lib then armory").shouldFilter == false)
+check("'rep' / 'reps' pass (reputation)", eval("farming timbermaw rep and argent dawn reps").shouldFilter == false)
+check("'cons' passes (consumes)", eval("bring full cons and world buffs for MC").shouldFilter == false)
+check("'DHs' passes (Demon Hunters)", eval("LF2M DHs for raid").shouldFilter == false)
+check("'ICC' passes (Icecrown Citadel)", eval("LFM ICC 25H mount run").shouldFilter == false)
+check("'Recount' passes (damage meter addon)", eval("Recount says I did top dps").shouldFilter == false)
+check("'Gallywix' passes (WoW lore / raid boss removed)",
+    eval("Chrome King Gallywix was a fun raid boss").shouldFilter == false)
+check("'Stockades' / 'stocks' pass", eval("LF tank for stocks quick run").shouldFilter == false)
+check("'Profaned Tinderbox' / 'tinder' pass", eval("WTB Profaned Tinderbox and tinder").shouldFilter == false)
+check("'hook me up' passes (only 'hookup' / 'looking to hook up')",
+    eval("can someone hook me up with an enchant").shouldFilter == false)
+check("substring safety for new EXACT slurs/profanity",
+    eval("spicy grape juice, raccoon pet, torpedo, crit cap, first aid, WTF folder, BS craft").shouldFilter == false)
+check("numeric/currency tokens do not leet-decode into false positives",
+    eval("LF group Keystone: Temple of Sethraliss (14) or (15) or (8+) or +17").shouldFilter == false
+    and eval("WTS enchant 35g, boe 600k-900k, 455% speed").shouldFilter == false)
+check("18+ RP-Friendly guild ad, 'war crimes' lore joke, and 'unsub' pass",
+    eval("Lunar Haven 18+ RP-Friendly guild seeking raiders 5/8H").shouldFilter == false
+    and eval("All this talk of war crimes reminds me of a certain windrunner").shouldFilter == false
+    and eval("what made you decide to unsub from retail").shouldFilter == false)
+
 -- Leet decoding also rewrites 'v' -> 'u', so rules containing a 'v' carry a
 -- decoded twin; without it, leet anywhere in the message hid them
 check("leet 'p0wer leveling' fires (rule contains a 'v')", eval("WTS p0wer leveling 1-80").shouldFilter == true)

@@ -107,20 +107,36 @@ function N.RestoreLinks(text, links)
     end))
 end
 
--- Apply Leetspeak & Homoglyph translation
-function N.ApplyLeetTranslation(text)
-    if not text then return "" end
+-- Apply Leetspeak & Homoglyph translation to a single chunk.
+local function TranslateChunk(chunk)
+    -- Skip chunks with no Latin letter, Cyrillic byte, or Euro sign so numeric
+    -- tokens like "(14)" (M+14 keystone -> "cia"), "(15)" ("cis"), "(8+)"
+    -- ("cbt"), "+17" ("tit"), and "455%" ("ass") never decode into fake words.
+    -- Also skip WoW currency/quantity literals like "35g" ("esg") or
+    -- "600k"/"900k" ("gook").
+    if #chunk >= 2 and not chunk:find("[%a\208\209]") and not chunk:find(EURO_SIGN, 1, true) then
+        return chunk
+    end
+    if chunk:find("^%p*%d+[gkms]%p*$") then
+        return chunk
+    end
 
     -- 1. Multibyte homoglyphs: single pass, skipped entirely for pure-ASCII text
-    if text:find("[\208\209]") then
-        text = text:gsub("[\208\209][\128-\191]", HOMOGLYPH_MAP)
+    if chunk:find("[\208\209]") then
+        chunk = chunk:gsub("[\208\209][\128-\191]", HOMOGLYPH_MAP)
     end
-    if text:find(EURO_SIGN, 1, true) then
-        text = text:gsub(EURO_SIGN, "e")
+    if chunk:find(EURO_SIGN, 1, true) then
+        chunk = chunk:gsub(EURO_SIGN, "e")
     end
 
     -- 2. Single-byte Leet character translation
-    return (text:gsub(".", LEET_MAP))
+    return (chunk:gsub(".", LEET_MAP))
+end
+
+-- Apply Leetspeak & Homoglyph translation
+function N.ApplyLeetTranslation(text)
+    if not text then return "" end
+    return (text:gsub("[^%s/%-]+", TranslateChunk))
 end
 
 -- Collapse runs of 3+ identical letters. A gsub with "(%a)%1%1+" cannot do
