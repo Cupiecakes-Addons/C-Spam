@@ -5,6 +5,26 @@ All notable changes to **C-SPAM** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.4] - 2026-11-21
+
+### Fixed
+- **Say / Yell / Whisper / Emote logs showed empty `[]` channel tags**: on those events Blizzard passes `""` for `channelString` (which is truthy in Lua), bypassing the fallback to the event name. Intercepted Say/Yell/Whisper/Emote entries now log `[SAY]`, `[YELL]`, `[WHISPER]`, and `[EMOTE]`.
+- **`leetExactWords` matches logged garbled decoded tokens**: matching `"v@nce"` logged `(Target: uance)` instead of `(Target: vance)`. Exact matches now report the signature's canonical `rule.text`.
+- **`CONTAINS` rules with `v` missed leet-spelled inputs**: `w0wvendor`, `v0yeur`, and `xv1deos` bypassed `wowvendor`/`voyeur`/`xvideos` because `leetClean` rewrites `v -> u`. Pure-letter `CONTAINS` rules now carry a leet-decoded twin (while leet-spelled rules like `d1sc` stay literal so `disc priest` stays allowed).
+- **MASK mode wiped punctuated phrases typed with spaces**: masking a `PHRASE` rule like `pro-life` against `"he is pro life"` fell back to `************` and dropped links. Bounded masking now accepts any punctuation or whitespace between words.
+- **Battle.net friend whitelist on multi-client logins**: `RebuildFriendSet` now strips `-Realm` with `ShortName()` and scans all active game accounts per Battle.net friend.
+- **Console UI fixes**: pressing Enter in the Threat Matrix input now submits the rule and clears focus; the Import/Export box now handles Escape and mouse-wheel scrolling; hovering the ARMED/DISARMED button no longer resets its green/red border back to grey; Pack Detail rows forward mouse-wheel scrolling; Tab 1 rows call `ClearAllPoints()` before re-anchoring.
+- **`scripts/package.sh` SIGPIPE**: replaced `unzip -l ... | head -20` with `sed -n '1,20p'` so packaging exits cleanly under `set -o pipefail`.
+
+### Changed
+- **~1.9x faster clean-message filtering (`36.7µs → 19.6µs` per uncached message)**:
+  - `CONTAINS` rules are now indexed by their leading 2-byte integer pair (`b1*256+b2`), avoiding ~380 `string.find` calls per clean message with zero string allocations, and skipping `leetClean` checks on punctuated rules.
+  - `Normalizer.NormalizeMessage` skips the second leet pass when a message has no translatable characters, fast-paths `AddJoinedRuns` when no 3+ single-character tokens exist, and reuses scratch buffers.
+  - `Engine:EvaluateMessage` reuses a shared pass-through result table and caches the player's lowercased name once at `PLAYER_ENTERING_WORLD`.
+- **Virtualized Defense Pack Detail list**: inspecting a 1,000+ signature pack now reuses a fixed 22-row frame pool instead of creating 1,073 permanent `BackdropTemplate` frames at once (~98% fewer frames, zero open/search hitch).
+
+---
+
 ## [1.10.3] - 2026-11-21
 
 ### Added
