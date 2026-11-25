@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    name: Lua 5.1, Tests, Identity & Packaging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Lua 5.1 and packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 zip unzip rsync
+
+      - name: Check Lua 5.1 syntax across all .lua files
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' f; do
+            luac5.1 -p "$f"
+            count=$((count + 1))
+          done < <(find . -name '*.lua' -not -path './.git/*' -not -path './dist/*' -print0 | sort -z)
+          echo "Lua 5.1 syntax OK across ${count} file(s)."
+
+      - name: Run C-Spam smoke and UI test suites
+        run: |
+          set -euo pipefail
+          lua5.1 tests/smoke.lua
+          lua5.1 tests/test_ui.lua
+
+      - name: Check TOC & Cupiecakes identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, sys
+
+          errors = []
+
+          # 1. TOC metadata and file list verification
+          toc_path = "C-Spam.toc"
+          if not os.path.exists(toc_path):
+              sys.exit(f"Missing {toc_path}")
+          lines = open(toc_path, encoding="utf-8-sig").read().splitlines()
+          headers = {}
+          for raw in lines:
+              line = raw.strip()
+              if not line:
+                  continue
+              if line.startswith("##"):
+                  m = re.match(r"^##\s*([^:]+):\s*(.*)$", line)
+                  if m:
+                      headers[m.group(1).strip()] = m.group(2).strip()
+              elif line.startswith("#"):
+                  continue
+              else:
+                  rel = line.replace("\\", "/")
+                  if not os.path.isfile(rel):
+                      errors.append(f"TOC entry missing on disk: {rel}")
+
+          if headers.get("Author") != "Cupiecakes":
+              errors.append(f"TOC '## Author:' must be 'Cupiecakes', got {headers.get('Author')!r}")
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?", headers.get("Version", "")):
+              errors.append(f"TOC '## Version:' must be a valid version, got {headers.get('Version')!r}")
+          ifaces = [i.strip() for i in headers.get("Interface", "").split(",") if i.strip()]
+          if not ifaces:
+              errors.append("TOC '## Interface:' is missing or empty")
+
+          # 2. Commit author/committer identity allowlist for commits in this push/PR
+          allowed_authors = {"Cupiecakes", "Kyle", "GoatXYZ", "dependabot[bot]", "github-actions[bot]"}
+          allowed_committers = allowed_authors | {"GitHub"}
+
+          def valid_email(email: str) -> bool:
+              e = email.lower()
+              return e.endswith("@users.noreply.github.com") or e == "noreply@github.com"
+
+          event = os.environ.get("EVENT_NAME", "")
+          pr_base = os.environ.get("PR_BASE", "")
+          pr_head = os.environ.get("PR_HEAD", "")
+          push_before = os.environ.get("PUSH_BEFORE", "")
+          head_sha = os.environ.get("HEAD_SHA", "HEAD")
+
+          rev_args = ["-n", "1", "HEAD"]
+          if event == "pull_request" and pr_base and pr_head:
+              rev_args = [f"{pr_base}..{pr_head}"]
+          elif event == "push" and push_before and set(push_before) != {"0"}:
+              chk = subprocess.run(["git", "cat-file", "-e", f"{push_before}^{{commit}}"])
+              if chk.returncode == 0:
+                  rev_args = [f"{push_before}..{head_sha}"]
+
+          out = subprocess.run(
+              ["git", "log", "--format=%H%x1f%an%x1f%ae%x1f%cn%x1f%ce", *rev_args],
+              check=True, capture_output=True, text=True
+          ).stdout.splitlines()
+
+          for row in out:
+              sha, an, ae, cn, ce = row.split("\x1f")
+              if an not in allowed_authors:
+                  errors.append(f"Commit {sha[:8]} author {an!r} not in allowlist")
+              if cn not in allowed_committers:
+                  errors.append(f"Commit {sha[:8]} committer {cn!r} not in allowlist")
+              if not valid_email(ae):
+                  errors.append(f"Commit {sha[:8]} author email must be a GitHub noreply address")
+              if not valid_email(ce):
+                  errors.append(f"Commit {sha[:8]} committer email must be a GitHub noreply address")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}", file=sys.stderr)
+              sys.exit(1)
+          print(f"TOC & identity checks passed ({len(out)} commit(s) checked, version={headers['Version']}).")
+          PY
+
+      - name: Dry-run WowUp-CF packaging and verify release.json
+        run: |
+          set -euo pipefail
+          bash scripts/package.sh
+          python3 - <<'PY'
+          import json, re, sys, zipfile
+
+          toc = open("C-Spam.toc", encoding="utf-8-sig").read()
+          ver = re.search(r"^## Version:\s*(.+)$", toc, re.M).group(1).strip()
+          expected_zip = f"C-Spam-v{ver}.zip"
+          zip_path = f"dist/{expected_zip}"
+
+          with zipfile.ZipFile(zip_path) as z:
+              names = z.namelist()
+              bad = [n for n in names if not n.startswith("C-Spam/")]
+              if bad:
+                  sys.exit(f"Entries outside C-Spam/: {bad[:5]}")
+              if "C-Spam/C-Spam.toc" not in names:
+                  sys.exit("Missing C-Spam/C-Spam.toc inside zip")
+
+          rel = json.load(open("dist/release.json", encoding="utf-8"))
+          releases = rel.get("releases", [])
+          assert len(releases) == 1, f"Expected 1 release entry, got {releases}"
+          entry = releases[0]
+          assert entry["filename"] == expected_zip, f"Filename mismatch: {entry['filename']} != {expected_zip}"
+          assert entry["version"] == f"v{ver}", f"Version mismatch: {entry['version']}"
+          flavors = {m["flavor"] for m in entry.get("metadata", [])}
+          assert {"mainline", "forever"}.issubset(flavors), f"Expected mainline & forever flavors, got {flavors}"
+          print(f"Packaging dry-run OK: {zip_path} ({len(names)} entries) + dist/release.json ({sorted(flavors)}).")
+          PY

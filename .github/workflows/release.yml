@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to package and publish (e.g. v1.10.4)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Package and verify only without publishing a GitHub Release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Package & Publish WowUp-CF Release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip rsync
+
+      - name: Resolve tag and verify TOC version match
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$REF_NAME"
+          fi
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "ERROR: Tag '$TAG' must match vX.Y.Z" >&2
+            exit 1
+          fi
+          TOC_VER=$(grep '^## Version:' C-Spam.toc | head -1 | sed -E 's/^## Version:[[:space:]]*//' | tr -d '\r' | xargs)
+          TAG_VER="${TAG#v}"
+          if [ "$TOC_VER" != "$TAG_VER" ]; then
+            echo "ERROR: Tag '$TAG' (version '$TAG_VER') does not match C-Spam.toc version '$TOC_VER'" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$TAG_VER" >> "$GITHUB_OUTPUT"
+          echo "archive=dist/C-Spam-${TAG}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Build release zip and release.json
+        env:
+          ARCHIVE: ${{ steps.meta.outputs.archive }}
+        run: |
+          set -euo pipefail
+          bash scripts/package.sh
+          test -f "$ARCHIVE"
+          test -f dist/release.json
+          python3 -m json.tool dist/release.json >/dev/null
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          ver = os.environ["VERSION"]
+          notes_path = "dist/release_notes.md"
+          if os.path.isfile("CHANGELOG.md"):
+              text = open("CHANGELOG.md", encoding="utf-8").read()
+              m = re.search(rf"^## \[{re.escape(ver)}\][^\n]*\n(.*?)(?=^## \[|\Z)", text, re.M | re.S)
+              if m and m.group(1).strip():
+                  open(notes_path, "w", encoding="utf-8").write(m.group(1).strip() + "\n")
+          PY
+          if [ -s dist/release_notes.md ]; then
+            echo "has_notes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish or update GitHub Release
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          ARCHIVE: ${{ steps.meta.outputs.archive }}
+          HAS_NOTES: ${{ steps.notes.outputs.has_notes }}
+        run: |
+          set -euo pipefail
+          # Only attach versioned zip + release.json (never unversioned C-Spam.zip)
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading assets with --clobber..."
+            gh release upload "$TAG" "$ARCHIVE" dist/release.json --clobber -R "$GITHUB_REPOSITORY"
+          else
+            echo "Creating release $TAG..."
+            if [ "$HAS_NOTES" = "true" ]; then
+              gh release create "$TAG" "$ARCHIVE" dist/release.json \
+                -R "$GITHUB_REPOSITORY" \
+                --target "$GITHUB_SHA" \
+                --title "C-SPAM ${TAG}" \
+                --notes-file dist/release_notes.md
+            else
+              gh release create "$TAG" "$ARCHIVE" dist/release.json \
+                -R "$GITHUB_REPOSITORY" \
+                --target "$GITHUB_SHA" \
+                --title "C-SPAM ${TAG}" \
+                --generate-notes
+            fi
+          fi
